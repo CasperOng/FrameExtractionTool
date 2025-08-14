@@ -53,26 +53,6 @@ A powerful iOS app for extracting high-quality frames from videos with precision
 6. **Extract frames** to save high-quality images to your photo library
 7. **Manage settings** including custom album names and haptic feedback
 
-## Key Components
-
-### Video Player
-- Custom implementation using AVFoundation
-- 16 scaling options (Fit, Fill, Stretch, etc.)
-- Professional timeline with frame markers
-- Gesture-based seeking and controls
-
-### Frame Extraction
-- Original video quality preservation
-- Batch extraction with progress tracking
-- Custom album organization
-- Photo library integration
-
-### User Experience
-- SwiftUI-based modern interface
-- iOS design language compliance
-- Configurable haptic feedback
-- Comprehensive help system
-
 ## Architecture
 
 - **SwiftUI** - Modern declarative UI framework
