@@ -208,8 +208,15 @@ jobs:
       run: |
         APP_VERSION=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'MARKETING_VERSION' | awk '{print $3}' | head -1)
         BUILD_NUMBER=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'CURRENT_PROJECT_VERSION' | awk '{print $3}' | head -1)
+        
+        # Extract version from Git tag for release title
+        GIT_TAG_VERSION=${GITHUB_REF#refs/tags/}
+        echo "release_version=${GIT_TAG_VERSION}" >> $GITHUB_OUTPUT
         echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
         echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+        echo "Git Tag Version: ${GIT_TAG_VERSION}"
+        echo "App Version: ${APP_VERSION}"
+        echo "Build Number: ${BUILD_NUMBER}"
         
     - name: Download IPA Artifact
       uses: actions/download-artifact@v4
@@ -222,9 +229,9 @@ jobs:
       with:
         files: |
           ./release/FrameExtractionTool-unsigned.ipa
-        name: FrameExtractionTool v${{ steps.app_version.outputs.app_version }}
+        name: FrameExtractionTool ${{ steps.app_version.outputs.release_version }}
         body: |
-          ## FrameExtractionTool v${{ steps.app_version.outputs.app_version }}
+          ## FrameExtractionTool ${{ steps.app_version.outputs.release_version }}
           
           ### 📱 What's New
           <!-- Add release notes here -->
