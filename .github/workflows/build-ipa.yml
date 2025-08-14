@@ -1,0 +1,204 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      build_configuration:
+        description: 'Build Configuration'
+        required: true
+        default: 'Release'
+        type: choice
+        options:
+        - Release
+        - Debug
+
+env:
+  XCODE_VERSION: '16.2'
+  IOS_SDK: 'iphoneos26.0'
+
+jobs:
+  build:
+    name: Build and Archive
+    runs-on: macos-15
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Select Xcode Version
+      run: sudo xcode-select -switch /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+      
+    - name: Show Xcode Version
+      run: |
+        xcodebuild -version
+        xcode-select -print-path
+        
+    - name: Show Available Simulators
+      run: xcrun simctl list devices available
+      
+    - name: Cache Derived Data
+      uses: actions/cache@v3
+      with:
+        path: ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-derived-data-${{ hashFiles('**/*.swift', '**/*.m', '**/*.h') }}
+        restore-keys: |
+          ${{ runner.os }}-derived-data-
+          
+    - name: Clean Build Directory
+      run: |
+        rm -rf build/
+        mkdir -p build/
+        
+    - name: Build Project
+      run: |
+        set -o pipefail
+        xcodebuild \
+          -project FrameExtractionTool.xcodeproj \
+          -scheme FrameExtractionTool \
+          -configuration ${{ github.event.inputs.build_configuration || 'Release' }} \
+          -destination "generic/platform=iOS" \
+          -archivePath build/FrameExtractionTool.xcarchive \
+          archive \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGN_IDENTITY="" \
+          PROVISIONING_PROFILE="" \
+          | xcpretty --color --simple
+          
+    - name: Create Payload Directory
+      run: |
+        mkdir -p build/Payload
+        cp -r build/FrameExtractionTool.xcarchive/Products/Applications/FrameExtractionTool.app build/Payload/
+        
+    - name: Generate IPA
+      run: |
+        cd build
+        zip -r FrameExtractionTool-unsigned.ipa Payload/
+        
+    - name: Verify IPA Structure
+      run: |
+        cd build
+        unzip -l FrameExtractionTool-unsigned.ipa | head -20
+        ls -la FrameExtractionTool-unsigned.ipa
+        
+    - name: Get App Version
+      id: app_version
+      run: |
+        APP_VERSION=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'MARKETING_VERSION' | awk '{print $3}' | head -1)
+        BUILD_NUMBER=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'CURRENT_PROJECT_VERSION' | awk '{print $3}' | head -1)
+        echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
+        echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+        echo "App Version: ${APP_VERSION}"
+        echo "Build Number: ${BUILD_NUMBER}"
+        
+    - name: Upload IPA Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: FrameExtractionTool-v${{ steps.app_version.outputs.app_version }}-build${{ steps.app_version.outputs.build_number }}-unsigned
+        path: build/FrameExtractionTool-unsigned.ipa
+        retention-days: 30
+        
+    - name: Upload Archive Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: FrameExtractionTool-archive-v${{ steps.app_version.outputs.app_version }}
+        path: build/FrameExtractionTool.xcarchive
+        retention-days: 7
+        
+    - name: Generate Build Summary
+      run: |
+        echo "## 📱 iOS Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| **App Version** | ${{ steps.app_version.outputs.app_version }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Build Number** | ${{ steps.app_version.outputs.build_number }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Configuration** | ${{ github.event.inputs.build_configuration || 'Release' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Xcode Version** | ${{ env.XCODE_VERSION }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **iOS SDK** | ${{ env.IOS_SDK }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Runner OS** | ${{ runner.os }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Artifacts Generated" >> $GITHUB_STEP_SUMMARY
+        echo "- **Unsigned IPA**: \`FrameExtractionTool-unsigned.ipa\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Xcode Archive**: \`FrameExtractionTool.xcarchive\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔽 Download" >> $GITHUB_STEP_SUMMARY
+        echo "The unsigned IPA can be downloaded from the **Artifacts** section of this workflow run." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "> ⚠️ **Note**: This is an unsigned build. For installation on physical devices, code signing is required." >> $GITHUB_STEP_SUMMARY
+
+  release:
+    name: Create Release
+    runs-on: macos-15
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Get App Version
+      id: app_version
+      run: |
+        APP_VERSION=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'MARKETING_VERSION' | awk '{print $3}' | head -1)
+        BUILD_NUMBER=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'CURRENT_PROJECT_VERSION' | awk '{print $3}' | head -1)
+        echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
+        echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+        
+    - name: Download IPA Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: FrameExtractionTool-v${{ steps.app_version.outputs.app_version }}-build${{ steps.app_version.outputs.build_number }}-unsigned
+        path: ./release/
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./release/FrameExtractionTool-unsigned.ipa
+        name: FrameExtractionTool v${{ steps.app_version.outputs.app_version }}
+        body: |
+          ## FrameExtractionTool v${{ steps.app_version.outputs.app_version }}
+          
+          ### 📱 What's New
+          <!-- Add release notes here -->
+          
+          ### 📋 Build Information
+          - **Version**: ${{ steps.app_version.outputs.app_version }}
+          - **Build**: ${{ steps.app_version.outputs.build_number }}
+          - **iOS Target**: 17.0+
+          - **Architecture**: Universal (iPhone/iPad)
+          
+          ### 📦 Installation
+          
+          #### For Developers:
+          1. Download the `FrameExtractionTool-unsigned.ipa` file
+          2. Use Xcode or developer tools to install on your device
+          3. Requires valid developer certificate and provisioning profile
+          
+          #### For Enterprise/Internal Distribution:
+          - Contact your IT administrator for installation assistance
+          - Enterprise certificates may be required
+          
+          ### ⚠️ Important Notes
+          - This is an **unsigned** build
+          - Installation requires developer tools or enterprise distribution
+          - For App Store distribution, use signed builds through official channels
+          
+          ### 🔧 Technical Details
+          - Built with Xcode ${{ env.XCODE_VERSION }}
+          - Swift 5.0 with modern concurrency
+          - SwiftUI + AVFoundation architecture
+          
+          ---
+          
+          Built automatically by GitHub Actions 🤖
+        draft: false
+        prerelease: false
+        token: ${{ secrets.GITHUB_TOKEN }}
