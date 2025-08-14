@@ -237,7 +237,7 @@ jobs:
           <!-- Add release notes here -->
           
           ### 📋 Build Information
-          - **Version**: ${{ steps.app_version.outputs.app_version }}
+          - **Version**: ${{ steps.app_version.outputs.release_version }}
           - **Build**: ${{ steps.app_version.outputs.build_number }}
           - **iOS Target**: 17.0+
           - **Architecture**: Universal (iPhone/iPad)
