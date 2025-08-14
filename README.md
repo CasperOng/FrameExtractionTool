@@ -11,8 +11,21 @@ A powerful iOS app for extracting high-quality frames from videos with precision
 ✨ **Modern UI** - Built with SwiftUI and iOS design guidelines  
 
 ## Screenshots
+##### Introduction Screen
+<img width="117.9" height="255.6" alt="Simulator Screenshot - iPhone 14 Pro - 2025-08-14 at 22 16 18" src="https://github.com/user-attachments/assets/ea1d14c1-40a3-492f-b828-087863a829c1" />
+<img width="117.9" height="255.6" alt="Simulator Screenshot - iPhone 14 Pro - 2025-08-14 at 22 16 24" src="https://github.com/user-attachments/assets/6f30dc3f-249d-4d76-b666-55ddfecf2f8f" />
+<img width="117.9" height="255.6" alt="Simulator Screenshot - iPhone 14 Pro - 2025-08-14 at 22 16 29" src="https://github.com/user-attachments/assets/d2b33aa8-1b94-412a-a642-210eaf83cf9a" />
+<br></br>
 
-*Screenshots coming soon*
+##### Working Screen
+<img width="117.9" height="255.6" alt="Simulator Screenshot - iPhone 14 Pro - 2025-08-14 at 22 16 36" src="https://github.com/user-attachments/assets/93e679fb-df55-43a6-82be-7b48051c87a4" />
+<img width="117.9" height="255.6" alt="Simulator Screenshot - iPhone 14 Pro - 2025-08-14 at 22 16 41" src="https://github.com/user-attachments/assets/0654c714-08db-444e-aee9-1286d4701976" />
+<img width="117.9" height="255.6" alt="Simulator Screenshot - iPhone 14 Pro - 2025-08-14 at 22 42 04" src="https://github.com/user-attachments/assets/2ee22adf-afa8-4cf3-81fd-9630d57f787e" />
+<img width="117.9" height="255.6" alt="Simulator Screenshot - iPhone 14 Pro - 2025-08-14 at 22 42 59" src="https://github.com/user-attachments/assets/54abc9f5-ae45-4f3d-9b0f-72599b2c3465" />
+<img width="117.9" height="255.6" alt="Simulator Screenshot - iPhone 14 Pro - 2025-08-14 at 22 45 22" src="https://github.com/user-attachments/assets/5fd9de52-d3aa-41bd-a1a5-d2df571de886" />
+<img width="117.9" height="255.6" alt="Simulator Screenshot - iPhone 14 Pro - 2025-08-14 at 22 45 26" src="https://github.com/user-attachments/assets/2c61380a-3496-4f59-8eb8-82cc6bd2f2f7" />
+
+
 
 ## Requirements
 
