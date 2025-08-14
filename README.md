@@ -25,7 +25,8 @@ A powerful iOS app for extracting high-quality frames from videos with precision
 <img width="117.9" height="255.6" alt="Simulator Screenshot - iPhone 14 Pro - 2025-08-14 at 22 45 22" src="https://github.com/user-attachments/assets/5fd9de52-d3aa-41bd-a1a5-d2df571de886" />
 <img width="117.9" height="255.6" alt="Simulator Screenshot - iPhone 14 Pro - 2025-08-14 at 22 45 26" src="https://github.com/user-attachments/assets/2c61380a-3496-4f59-8eb8-82cc6bd2f2f7" />
 
-
+## Words from the Developer 
+This is a very barebone app as a side project of mine. The main goal of this app is to let me know how AI makes app, play around with the SwiftUI, and play with the Icon Composer. This app is very heavily developed using AI. Bugs are expected. Feel free to open a pull request and help me fix :D 
 
 ## Requirements
 
@@ -61,34 +62,6 @@ A powerful iOS app for extracting high-quality frames from videos with precision
 - **Combine** - Reactive programming patterns
 - **Swift Concurrency** - Modern async/await patterns
 
-## Version History
-
-### v1.2.0 (Current)
-- Added custom album support with settings
-- Implemented discard confirmation for unsaved changes
-- Enhanced video player with 16 scaling options
-- Improved timeline scrolling and positioning
-- Professional video player without default Apple controls
-
-### v1.1.0
-- Video scaling feature with multiple options
-- iOS SDK styling throughout the app
-- Enhanced user interface polish
-
-### v1.0.0
-- Initial release with core frame extraction functionality
-- Video selection and playback
-- Frame marking and extraction
-- Basic photo library saving
-
-## Technical Details
-
-- **Target:** iOS 17.0+
-- **Architecture:** Universal (iPhone/iPad)
-- **Language:** Swift 5.0 with modern concurrency
-- **Frameworks:** SwiftUI, AVFoundation, Photos, Combine
-- **Build System:** Xcode project with automatic Info.plist generation
-
 ## Privacy
 
 This app requires photo library access to:
@@ -97,10 +70,6 @@ This app requires photo library access to:
 - Create and manage custom photo albums
 
 All processing happens locally on your device. No data is transmitted to external servers.
-
-## License
-
-*License information to be added*
 
 ## Contributing
 
