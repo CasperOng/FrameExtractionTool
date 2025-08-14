@@ -36,10 +36,15 @@ jobs:
         
     - name: Select Xcode Version
       run: |
-        # Use the latest Xcode that was just installed
-        LATEST_XCODE=$(find /Applications -name "Xcode*.app" | sort -V | tail -1)
+        # Use the latest Xcode that was just installed, but exclude helper apps
+        LATEST_XCODE=$(find /Applications -maxdepth 1 -name "Xcode*.app" -not -path "*/Xcode Helper.app" | sort -V | tail -1)
         echo "Using Xcode: $LATEST_XCODE"
-        sudo xcode-select -switch "$LATEST_XCODE/Contents/Developer"
+        if [ -z "$LATEST_XCODE" ]; then
+          echo "No Xcode found, using default"
+          sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+        else
+          sudo xcode-select -switch "$LATEST_XCODE/Contents/Developer"
+        fi
       
     - name: Show Xcode Version
       run: |
