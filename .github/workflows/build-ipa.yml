@@ -30,6 +30,11 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
       
+    - name: Setup Latest Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '16.2'
+        
     - name: Select Xcode Version
       run: sudo xcode-select -switch /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
       
@@ -68,12 +73,20 @@ jobs:
           CODE_SIGNING_ALLOWED=NO \
           CODE_SIGN_IDENTITY="" \
           PROVISIONING_PROFILE="" \
-          | xcpretty --color --simple
+          DEVELOPMENT_TEAM="" \
+          -allowProvisioningUpdates \
+          | tee xcodebuild.log
           
     - name: Create Payload Directory
       run: |
         mkdir -p build/Payload
-        cp -r build/FrameExtractionTool.xcarchive/Products/Applications/FrameExtractionTool.app build/Payload/
+        if [ -d "build/FrameExtractionTool.xcarchive/Products/Applications/FrameExtractionTool.app" ]; then
+          cp -r build/FrameExtractionTool.xcarchive/Products/Applications/FrameExtractionTool.app build/Payload/
+        else
+          echo "Error: App not found in archive"
+          find build/ -name "*.app" -type d
+          exit 1
+        fi
         
     - name: Generate IPA
       run: |
@@ -132,6 +145,16 @@ jobs:
         echo "The unsigned IPA can be downloaded from the **Artifacts** section of this workflow run." >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "> ⚠️ **Note**: This is an unsigned build. For installation on physical devices, code signing is required." >> $GITHUB_STEP_SUMMARY
+        
+    - name: Upload Build Logs
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: build-logs-${{ github.run_number }}
+        path: |
+          xcodebuild.log
+          build/
+        retention-days: 7
 
   release:
     name: Create Release
@@ -143,6 +166,11 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
       
+    - name: Setup Latest Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '16.2'
+        
     - name: Get App Version
       id: app_version
       run: |
