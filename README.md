@@ -1,3 +1,5 @@
+<img width="110" height="110" alt="FrameExtractionTool-iOS-ClearDark-1024x1024@1x" src="https://github.com/user-attachments/assets/106a77c4-2cc5-4d6f-a226-9692e072935a" />
+
 # Frame Extraction Tool
 
 A powerful iOS app for extracting high-quality frames from videos with precision timing control.
