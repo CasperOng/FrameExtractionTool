@@ -50,13 +50,6 @@ workflows:
       - build/FrameExtractionTool-unsigned.ipa
       - build/FrameExtractionTool.xcarchive
       - /tmp/xcodebuild_logs/*.log
-    publishing:
-      email:
-        recipients:
-          - casperong@example.com # Update with your email
-        notify:
-          success: true
-          failure: true
 
   ios-release-workflow:
     name: iOS Release Build
@@ -121,10 +114,3 @@ workflows:
       - build/FrameExtractionTool-*-unsigned.ipa
       - build/FrameExtractionTool-*.xcarchive
       - /tmp/xcodebuild_logs/*.log
-    publishing:
-      email:
-        recipients:
-          - casper10528@gmail.com
-        notify:
-          success: true
-          failure: true
