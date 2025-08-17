@@ -64,6 +64,24 @@ This is a very barebone app as a side project of mine. The main goal of this app
 - **Combine** - Reactive programming patterns
 - **Swift Concurrency** - Modern async/await patterns
 
+## CI/CD Workflows
+
+This project includes two CI/CD platforms for automated building and testing:
+
+### GitHub Actions
+- **Build Trigger**: Push to main branch or pull requests
+- **Output**: Unsigned IPA files for development and testing
+- **iOS SDK**: Automatically detects and uses latest iOS SDK (iOS 26+)
+- **Configuration**: `.github/workflows/build-ipa.yml`
+
+### CodeMagic CI/CD
+- **ios-unsigned-workflow**: Standard unsigned builds for development
+- **ios-release-workflow**: Release builds triggered by Git tags (v1.0.0, etc.)
+- **Output**: Unsigned IPA files suitable for development and testing
+- **Configuration**: `codemagic.yaml`
+
+Both platforms produce unsigned IPA files that can be installed on development devices or simulators. No Apple Developer account is required.
+
 ## Privacy
 
 This app requires photo library access to:
