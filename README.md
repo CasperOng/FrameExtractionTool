@@ -12,6 +12,19 @@ A powerful iOS app for extracting high-quality frames from videos with precision
 📚 **Custom Album Support** - Save extracted frames to custom photo albums  
 ✨ **Modern UI** - Built with SwiftUI and iOS design guidelines  
 
+## ⚠️ Developer Account Status
+
+**Important Notice**: This project is developed without an Apple Developer Program membership. This means:
+
+- ❌ **No App Store Distribution** - The app cannot be published to the App Store
+- ❌ **No Code Signing** - All builds are unsigned and for development/testing only
+- ❌ **No TestFlight** - No distribution through Apple's beta testing platform
+- ✅ **Open Source** - Full source code available for learning and contribution
+- ✅ **Local Development** - Can be built and run locally using Xcode
+- ✅ **CI/CD Builds** - Automated unsigned builds available through GitHub Actions and CodeMagic
+
+If you want to use this app on your device, you'll need to build it yourself using Xcode or use the unsigned IPA files for development purposes.
+
 ## Screenshots
 ##### Introduction Screen
 <img width="117.9" height="255.6" alt="Simulator Screenshot - iPhone 14 Pro - 2025-08-14 at 22 16 18" src="https://github.com/user-attachments/assets/ea1d14c1-40a3-492f-b828-087863a829c1" />
@@ -38,13 +51,26 @@ This is a very barebone app as a side project of mine. The main goal of this app
 
 ## Installation
 
-### Option 1: Build from Source
+**Note**: Since this project doesn't have an Apple Developer Program membership, the app is not available on the App Store and cannot be code signed for general distribution.
+
+### Option 1: Build from Source (Recommended)
 1. Clone this repository
 2. Open `FrameExtractionTool.xcodeproj` in Xcode
-3. Build and run on your device
+3. Connect your iOS device or use the simulator
+4. Build and run directly from Xcode
 
-### Option 2: IPA Installation
-*For advanced users with developer tools or enterprise deployment*
+### Option 2: Unsigned IPA Installation
+*For advanced users with development tools*
+- Download unsigned IPA files from GitHub Actions or CodeMagic CI/CD builds
+- Install using development tools like Xcode, iOS App Installer, or enterprise deployment methods
+- **Note**: Unsigned apps have limitations and may require re-installation periodically
+
+### Option 3: Fork and Sign Yourself
+If you have an Apple Developer Program membership:
+1. Fork this repository
+2. Update the bundle identifier in the project settings
+3. Configure code signing with your developer certificate
+4. Build and distribute as needed
 
 ## How to Use
 
