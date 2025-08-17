@@ -229,5 +229,4 @@ Payload/
 *.keychain-db
 
 # GitHub Copilot instructions (internal development)
-.github/copilot-instructions.md
 .github/instructions/

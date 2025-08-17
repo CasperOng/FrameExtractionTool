@@ -27,7 +27,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading) {
                             Text("Frame Extractor")
                                 .font(.headline)
-                            Text("Version 1.4.1")
+                            Text("Version 1.4.2")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
