@@ -1,0 +1,180 @@
+workflows:
+  ios-workflow:
+    name: iOS Workflow
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    integrations:
+      app_store_connect: codemagic
+    environment:
+      ios_signing:
+        distribution_type: development
+        bundle_identifier: caspernyong.FrameExtractionTool
+      vars:
+        XCODE_WORKSPACE: "FrameExtractionTool.xcodeproj"
+        XCODE_SCHEME: "FrameExtractionTool"
+        BUNDLE_ID: "caspernyong.FrameExtractionTool"
+        APP_ID: 6504388104 # <-- Put your App ID here
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+      - name: Get CocoaPods sources
+        script: |
+          if [ -f "Podfile" ]; then
+            pod install
+          else
+            echo "No Podfile found, skipping CocoaPods installation"
+          fi
+      - name: Build ipa for distribution
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --archive-flags="-destination 'generic/platform=iOS'" \
+            --export-options-plist export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      email:
+        recipients:
+          - casperong@example.com # Update with your email
+        notify:
+          success: true
+          failure: true
+      slack:
+        channel: '#builds'
+        notify_on_build_start: true
+        notify:
+          success: true
+          failure: true
+
+  ios-unsigned-workflow:
+    name: iOS Unsigned Build
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      vars:
+        XCODE_WORKSPACE: "FrameExtractionTool.xcodeproj"
+        XCODE_SCHEME: "FrameExtractionTool"
+        BUNDLE_ID: "caspernyong.FrameExtractionTool"
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Get CocoaPods sources
+        script: |
+          if [ -f "Podfile" ]; then
+            pod install
+          else
+            echo "No Podfile found, skipping CocoaPods installation"
+          fi
+      - name: Build unsigned archive
+        script: |
+          set -e
+          xcodebuild \
+            -project "$XCODE_WORKSPACE" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "build/FrameExtractionTool.xcarchive" \
+            archive \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE="" \
+            DEVELOPMENT_TEAM=""
+      - name: Create unsigned IPA
+        script: |
+          set -e
+          mkdir -p build/Payload
+          cp -r "build/FrameExtractionTool.xcarchive/Products/Applications/FrameExtractionTool.app" "build/Payload/"
+          cd build
+          zip -r "FrameExtractionTool-unsigned.ipa" "Payload/"
+          ls -la FrameExtractionTool-unsigned.ipa
+      - name: Verify IPA structure
+        script: |
+          cd build
+          unzip -l FrameExtractionTool-unsigned.ipa | head -20
+    artifacts:
+      - build/FrameExtractionTool-unsigned.ipa
+      - build/FrameExtractionTool.xcarchive
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - casperong@example.com # Update with your email
+        notify:
+          success: true
+          failure: true
+
+  ios-release-workflow:
+    name: iOS Release Workflow
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
+    integrations:
+      app_store_connect: codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: caspernyong.FrameExtractionTool
+      vars:
+        XCODE_WORKSPACE: "FrameExtractionTool.xcodeproj"
+        XCODE_SCHEME: "FrameExtractionTool"
+        BUNDLE_ID: "caspernyong.FrameExtractionTool"
+        APP_ID: 6504388104 # <-- Put your App ID here
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+      - name: Get CocoaPods sources
+        script: |
+          if [ -f "Podfile" ]; then
+            pod install
+          else
+            echo "No Podfile found, skipping CocoaPods installation"
+          fi
+      - name: Increment build number
+        script: |
+          cd $CM_BUILD_DIR
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_ID")
+          agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
+      - name: Build ipa for distribution
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --archive-flags="-destination 'generic/platform=iOS'"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      # Uncomment when ready for App Store submission
+      # app_store_connect:
+      #   auth: integration
+      #   submit_to_app_store: false
+      #   submit_to_testflight: true
+      email:
+        recipients:
+          - casperong@example.com # Update with your email
+        notify:
+          success: true
+          failure: true
+      slack:
+        channel: '#releases'
+        notify_on_build_start: true
+        notify:
+          success: true
+          failure: true
