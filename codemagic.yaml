@@ -124,7 +124,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - casper@casperong.eu.org # Update with your email
+          - casper10528@gmail.com
         notify:
           success: true
           failure: true
