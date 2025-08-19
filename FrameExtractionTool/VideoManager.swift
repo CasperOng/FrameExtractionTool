@@ -70,6 +70,37 @@ final class VideoManager: ObservableObject {
         }
     }
     
+    func deleteExtractedFrame(_ frame: ExtractedFrame) {
+        extractedFrames.removeAll { $0.id == frame.id }
+        
+        // Provide haptic feedback if enabled
+        if UserDefaults.standard.bool(forKey: "hapticFeedback") {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
+    }
+    
+    func deleteExtractedFrames(_ framesToDelete: [ExtractedFrame]) {
+        let idsToDelete = Set(framesToDelete.map { $0.id })
+        extractedFrames.removeAll { idsToDelete.contains($0.id) }
+        
+        // Provide haptic feedback if enabled
+        if UserDefaults.standard.bool(forKey: "hapticFeedback") {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+        }
+    }
+    
+    func clearAllExtractedFrames() {
+        extractedFrames.removeAll()
+        
+        // Provide haptic feedback if enabled
+        if UserDefaults.standard.bool(forKey: "hapticFeedback") {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+            impactFeedback.impactOccurred()
+        }
+    }
+    
     func extractAllMarkedFrames() async throws {
         guard !markedFrames.isEmpty else { return }
         

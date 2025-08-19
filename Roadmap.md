@@ -8,3 +8,6 @@ Ask if user would like to discard when leaving with changes made -->
 
 <!-- #### Icon with IconToolKit
 A new icon for the app with those layers stuff  -->
+
+#### Delete in Extracted Frames Tab
+Add a "delete" button on the extractd frames tab 

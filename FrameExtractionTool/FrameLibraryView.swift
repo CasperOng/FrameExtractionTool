@@ -10,6 +10,10 @@ import SwiftUI
 struct FrameLibraryView: View {
     @ObservedObject var videoManager: VideoManager
     @Environment(\.dismiss) private var dismiss
+    @State private var isSelecting = false
+    @State private var selectedFrames: Set<UUID> = []
+    @State private var showingDeleteConfirmation = false
+    @State private var frameToDelete: ExtractedFrame?
     
     private let columns = [
         GridItem(.adaptive(minimum: 100, maximum: 150), spacing: 8)
@@ -38,7 +42,13 @@ struct FrameLibraryView: View {
                 } else {
                     LazyVGrid(columns: columns, spacing: 8) {
                         ForEach(videoManager.extractedFrames.reversed()) { frame in
-                            FrameThumbnailView(frame: frame)
+                            FrameThumbnailView(
+                                frame: frame,
+                                isSelecting: isSelecting,
+                                isSelected: selectedFrames.contains(frame.id),
+                                onSelect: { toggleSelection(for: frame) },
+                                onDelete: { deleteFrame(frame) }
+                            )
                         }
                     }
                     .padding()
@@ -47,49 +57,157 @@ struct FrameLibraryView: View {
             .navigationTitle("Extracted Frames")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if isSelecting {
+                        Button("Cancel") {
+                            cancelSelection()
+                        }
+                    } else {
+                        EmptyView()
+                    }
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+                    HStack {
+                        if !videoManager.extractedFrames.isEmpty {
+                            Button(isSelecting ? "Delete" : "Select") {
+                                if isSelecting {
+                                    deleteSelectedFrames()
+                                } else {
+                                    startSelection()
+                                }
+                            }
+                            .disabled(isSelecting && selectedFrames.isEmpty)
+                        }
+                        
+                        if !isSelecting {
+                            Button("Done") {
+                                dismiss()
+                            }
+                        }
                     }
                 }
             }
+            .alert("Delete Frame", isPresented: $showingDeleteConfirmation) {
+                Button("Delete", role: .destructive) {
+                    if let frame = frameToDelete {
+                        videoManager.deleteExtractedFrame(frame)
+                        frameToDelete = nil
+                    }
+                }
+                Button("Cancel", role: .cancel) {
+                    frameToDelete = nil
+                }
+            } message: {
+                Text("Are you sure you want to delete this extracted frame?")
+            }
+        }
+    }
+    
+    private func toggleSelection(for frame: ExtractedFrame) {
+        if selectedFrames.contains(frame.id) {
+            selectedFrames.remove(frame.id)
+        } else {
+            selectedFrames.insert(frame.id)
+        }
+    }
+    
+    private func startSelection() {
+        isSelecting = true
+        selectedFrames.removeAll()
+    }
+    
+    private func cancelSelection() {
+        isSelecting = false
+        selectedFrames.removeAll()
+    }
+    
+    private func deleteFrame(_ frame: ExtractedFrame) {
+        frameToDelete = frame
+        showingDeleteConfirmation = true
+    }
+    
+    private func deleteSelectedFrames() {
+        let framesToDelete = videoManager.extractedFrames.filter { selectedFrames.contains($0.id) }
+        videoManager.deleteExtractedFrames(framesToDelete)
+        cancelSelection()
         }
     }
 }
 
 struct FrameThumbnailView: View {
     let frame: ExtractedFrame
+    let isSelecting: Bool
+    let isSelected: Bool
+    let onSelect: () -> Void
+    let onDelete: () -> Void
+    
     @State private var showingFullScreen = false
     
     var body: some View {
         Button {
-            showingFullScreen = true
+            if isSelecting {
+                onSelect()
+            } else {
+                showingFullScreen = true
+            }
         } label: {
-            Image(uiImage: frame.image)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 100, height: 100)
-                .clipped()
-                .cornerRadius(8)
-                .overlay(
+            ZStack {
+                Image(uiImage: frame.image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 100, height: 100)
+                    .clipped()
+                    .cornerRadius(8)
+                    .overlay(
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Image(systemName: "clock")
+                                    .font(.caption2)
+                                    .foregroundColor(.white)
+                                Text(frame.originalMarkedFrame.timeString)
+                                    .font(.caption2)
+                                    .foregroundColor(.white)
+                                    .monospacedDigit()
+                            }
+                            .padding(4)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(4)
+                            .padding(4)
+                        }
+                    )
+                    .overlay(
+                        // Selection overlay
+                        isSelecting ? RoundedRectangle(cornerRadius: 8)
+                            .stroke(isSelected ? .blue : .gray, lineWidth: 3)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(isSelected ? .blue.opacity(0.2) : .clear)
+                            ) : nil
+                    )
+                
+                // Selection checkmark
+                if isSelecting {
                     VStack {
-                        Spacer()
                         HStack {
                             Spacer()
-                            Image(systemName: "clock")
-                                .font(.caption2)
-                                .foregroundColor(.white)
-                            Text(frame.originalMarkedFrame.timeString)
-                                .font(.caption2)
-                                .foregroundColor(.white)
-                                .monospacedDigit()
+                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                .font(.title3)
+                                .foregroundColor(isSelected ? .blue : .gray)
+                                .background(Circle().fill(.white))
                         }
-                        .padding(4)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(4)
-                        .padding(4)
+                        Spacer()
                     }
-                )
+                    .padding(8)
+                }
+            }
+        }
+        .onLongPressGesture {
+            if !isSelecting {
+                onDelete()
+            }
         }
         .fullScreenCover(isPresented: $showingFullScreen) {
             FullScreenImageView(image: frame.image) {
