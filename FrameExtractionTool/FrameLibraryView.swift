@@ -131,7 +131,6 @@ struct FrameLibraryView: View {
         let framesToDelete = videoManager.extractedFrames.filter { selectedFrames.contains($0.id) }
         videoManager.deleteExtractedFrames(framesToDelete)
         cancelSelection()
-        }
     }
 }
 
