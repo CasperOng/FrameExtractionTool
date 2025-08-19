@@ -8,7 +8,7 @@ workflows:
         XCODE_WORKSPACE: "FrameExtractionTool.xcodeproj"
         XCODE_SCHEME: "FrameExtractionTool"
         BUNDLE_ID: "caspernyong.FrameExtractionTool.CMTest"
-      xcode: latest
+      xcode: edge
       cocoapods: default
     scripts:
       - name: Get CocoaPods sources
