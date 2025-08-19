@@ -10,7 +10,27 @@ A powerful iOS app for extracting high-quality frames from videos with precision
 📍 **Frame Marking** - Mark specific frames during playback  
 💾 **High-Quality Extraction** - Extract frames at original video quality  
 📚 **Custom Album Support** - Save extracted frames to custom photo albums  
+🗑️ **Smart Delete** - Remove frames from both app AND Photos library  
+📱 **Long-Press & Multi-Select** - Advanced deletion with haptic feedback  
 ✨ **Modern UI** - Built with SwiftUI and iOS design guidelines  
+
+## 🆕 What's New in v1.5.1
+
+### 🗑️ **Complete Photo Library Integration**
+- **Smart Delete**: Deleting frames now removes them from BOTH the app AND your Photos library
+- **No More Clutter**: No orphaned photos left behind in your camera roll
+- **Seamless Experience**: Automatic photo library cleanup with proper permissions
+
+### 📱 **Enhanced Delete Features**
+- **Long-Press Delete**: Hold any frame to delete it instantly (with confirmation)
+- **Multi-Select Mode**: Tap "Select" to choose multiple frames for bulk deletion  
+- **Visual Feedback**: Blue selection overlays and haptic feedback for all operations
+- **Smart Controls**: Context-aware toolbar that adapts to your selection
+
+### ⚡ **Performance & Reliability**
+- **Background Deletion**: Photo library cleanup happens asynchronously
+- **Error Handling**: Graceful handling of already-deleted or missing assets
+- **Permission Management**: Automatic photo library write access requests
 
 ## ⚠️ Developer Account Status
 
