@@ -65,14 +65,21 @@ workflows:
           script: |
             set -ex
             
+            # Check if WEBHOOK_URL is set
+            if [ -z "$WEBHOOK_URL" ]; then
+              echo "Warning: WEBHOOK_URL is not set. Skipping Discord notification."
+              echo "Please set the WEBHOOK_URL environment variable in the discord_credentials group."
+              exit 0
+            fi
+            
             # Get artifact link for the IPA file
             APP_LINK=$(echo $CM_ARTIFACT_LINKS | jq -r '.[] | select(.name | contains("FrameExtractionTool-unsigned.ipa")) | .url // "No artifact link available"')
             
             # Get first 7 digits of commit number
             COMMIT=$(echo "${CM_COMMIT}" | sed 's/^\(........\).*/\1/;q')
             
-            # Get commit message
-            COMMIT_MESSAGE=$(git log --format=%B -n 1 $CM_COMMIT)
+            # Get commit message (escape quotes and newlines for JSON)
+            COMMIT_MESSAGE=$(git log --format=%B -n 1 $CM_COMMIT | tr '\n' ' ' | sed 's/"/\\"/g')
             
             # Get commit author
             AUTHOR=$(git show -s --format='%ae' $CM_COMMIT)
@@ -80,11 +87,26 @@ workflows:
             # Get build status
             BUILD_STATUS="✅ Build Successful"
             
+            # Create the JSON payload
+            PAYLOAD=$(cat <<EOF
+{
+  "username": "FrameExtractionTool-CI",
+  "content": "$BUILD_STATUS - iOS Unsigned Build\\n\\n**Commit:** \`$COMMIT\`\\n\\n**Commit message:** $COMMIT_MESSAGE\\n\\n**Branch:** $CM_BRANCH\\n\\n**Author:** $AUTHOR\\n\\n**Build:** $CM_BUILD_URL\\n\\n**Artifacts:**\\n$APP_LINK"
+}
+EOF
+)
+            
             # Send Discord notification
-            curl -H "Content-Type: multipart/form-data" \
-              -F 'payload_json={"username" : "FrameExtractionTool-CI", "content": "'"$BUILD_STATUS"' - iOS Unsigned Build\n\n**Commit:** `'"$COMMIT"'`\n\n**Commit message:** '"$COMMIT_MESSAGE"'\n\n**Branch:** '"$CM_BRANCH"'\n\n**Author:** '"$AUTHOR"'\n\n**Build:** '"$CM_BUILD_URL"'\n\n**Artifacts:**\n'"$APP_LINK"'\n"}' \
-              -F "file1=@release_notes.txt" \
-              $WEBHOOK_URL
+            if [ -f "release_notes.txt" ]; then
+              curl -H "Content-Type: multipart/form-data" \
+                -F "payload_json=$PAYLOAD" \
+                -F "file1=@release_notes.txt" \
+                "$WEBHOOK_URL"
+            else
+              curl -H "Content-Type: application/json" \
+                -d "$PAYLOAD" \
+                "$WEBHOOK_URL"
+            fi
 
   ios-release-workflow:
     name: iOS Release Build
@@ -166,6 +188,13 @@ workflows:
           script: |
             set -ex
             
+            # Check if WEBHOOK_URL is set
+            if [ -z "$WEBHOOK_URL" ]; then
+              echo "Warning: WEBHOOK_URL is not set. Skipping Discord notification."
+              echo "Please set the WEBHOOK_URL environment variable in the discord_credentials group."
+              exit 0
+            fi
+            
             # Get version from tag
             VERSION=${CM_TAG#v}
             
@@ -175,8 +204,8 @@ workflows:
             # Get first 7 digits of commit number
             COMMIT=$(echo "${CM_COMMIT}" | sed 's/^\(........\).*/\1/;q')
             
-            # Get commit message
-            COMMIT_MESSAGE=$(git log --format=%B -n 1 $CM_COMMIT)
+            # Get commit message (escape quotes and newlines for JSON)
+            COMMIT_MESSAGE=$(git log --format=%B -n 1 $CM_COMMIT | tr '\n' ' ' | sed 's/"/\\"/g')
             
             # Get commit author
             AUTHOR=$(git show -s --format='%ae' $CM_COMMIT)
@@ -184,8 +213,23 @@ workflows:
             # Get build status
             BUILD_STATUS="🚀 Release Build Successful"
             
+            # Create the JSON payload
+            PAYLOAD=$(cat <<EOF
+{
+  "username": "FrameExtractionTool-CI",
+  "content": "$BUILD_STATUS - iOS Release v$VERSION\\n\\n**Release Tag:** \`$CM_TAG\`\\n\\n**Commit:** \`$COMMIT\`\\n\\n**Commit message:** $COMMIT_MESSAGE\\n\\n**Branch:** $CM_BRANCH\\n\\n**Author:** $AUTHOR\\n\\n**Build:** $CM_BUILD_URL\\n\\n**Release Artifacts:**\\n$APP_LINK"
+}
+EOF
+)
+            
             # Send Discord notification
-            curl -H "Content-Type: multipart/form-data" \
-              -F 'payload_json={"username" : "FrameExtractionTool-CI", "content": "'"$BUILD_STATUS"' - iOS Release v'"$VERSION"'\n\n**Release Tag:** `'"$CM_TAG"'`\n\n**Commit:** `'"$COMMIT"'`\n\n**Commit message:** '"$COMMIT_MESSAGE"'\n\n**Branch:** '"$CM_BRANCH"'\n\n**Author:** '"$AUTHOR"'\n\n**Build:** '"$CM_BUILD_URL"'\n\n**Release Artifacts:**\n'"$APP_LINK"'\n"}' \
-              -F "file1=@release_notes.txt" \
-              $WEBHOOK_URL
+            if [ -f "release_notes.txt" ]; then
+              curl -H "Content-Type: multipart/form-data" \
+                -F "payload_json=$PAYLOAD" \
+                -F "file1=@release_notes.txt" \
+                "$WEBHOOK_URL"
+            else
+              curl -H "Content-Type: application/json" \
+                -d "$PAYLOAD" \
+                "$WEBHOOK_URL"
+            fi
