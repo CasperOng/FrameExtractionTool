@@ -233,3 +233,10 @@ Payload/
 
 # GitHub Copilot instructions (internal development)
 .github/instructions/
+
+# Claude Code artifacts (keep only CLAUDE.md for project docs)
+.claude/
+*.rb
+SHARE_EXTENSION_SETUP.md
+IMPLEMENTATION_SUMMARY.md
+CLI_CONFIGURATION_COMPLETE.md
