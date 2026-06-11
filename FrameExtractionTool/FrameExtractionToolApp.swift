@@ -24,6 +24,6 @@ struct FrameExtractionToolApp: App {
 
         // The ContentView will check for pending videos on appear
         // No additional action needed here
-        print("App opened from share extension")
+        print("✅ App opened from share extension with URL: \(url)")
     }
 }
