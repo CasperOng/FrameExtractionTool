@@ -52,17 +52,9 @@ jobs:
         xcodebuild -version
         xcode-select -print-path
 
-    - name: Show Available Simulators and SDKs
+    - name: Show Available SDKs
       run: |
-        xcrun simctl list devices available
         echo "Available iOS SDKs:"
-        xcodebuild -showsdks | grep iOS
-
-    - name: Download iOS 27 Platform
-      run: |
-        # Download iOS 27 platform if available
-        sudo xcodebuild -downloadPlatform iOS || true
-        echo "iOS SDKs after download:"
         xcodebuild -showsdks | grep iOS
 
     - name: Cache Derived Data

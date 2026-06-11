@@ -50,19 +50,10 @@ jobs:
       run: |
         xcodebuild -version
         xcode-select -print-path
-        
-    - name: Show Available Simulators
+
+    - name: Show Available SDKs
       run: |
-        xcrun simctl list devices available
         echo "Available iOS SDKs:"
-        xcodebuild -showsdks | grep iOS
-        
-    - name: Download Latest iOS Platform
-      run: |
-        # Download all available iOS platforms
-        sudo xcodebuild -downloadAllPlatforms || true
-        # Show what we have after download
-        echo "iOS SDKs after download:"
         xcodebuild -showsdks | grep iOS
       
     - name: Cache Derived Data
