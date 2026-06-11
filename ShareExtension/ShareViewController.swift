@@ -114,8 +114,13 @@ struct ShareExtensionView: View {
             return
         }
 
+        // Try movie first, then video
+        let typeIdentifier = videoAttachment.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
+            ? UTType.movie.identifier
+            : UTType.video.identifier
+
         // Load the video URL
-        videoAttachment.loadItem(forTypeIdentifier: UTType.movie.identifier, options: nil) { (item, error) in
+        videoAttachment.loadItem(forTypeIdentifier: typeIdentifier, options: nil) { (item, error) in
             DispatchQueue.main.async {
                 if let error = error {
                     self.errorMessage = "Failed to load video: \(error.localizedDescription)"
@@ -129,11 +134,28 @@ struct ShareExtensionView: View {
                     return
                 }
 
-                // Save the video URL to shared storage
-                SharedDataManager.shared.savePendingVideo(url: videoURL)
+                // Start accessing security-scoped resource
+                let isAccessing = videoURL.startAccessingSecurityScopedResource()
 
-                // Open the main app
-                self.openMainApp()
+                defer {
+                    if isAccessing {
+                        videoURL.stopAccessingSecurityScopedResource()
+                    }
+                }
+
+                // Copy video to shared container
+                do {
+                    let copiedURL = try SharedDataManager.shared.copyVideoToSharedContainer(from: videoURL)
+
+                    // Save the copied video URL to shared storage
+                    SharedDataManager.shared.savePendingVideo(url: copiedURL)
+
+                    // Open the main app
+                    self.openMainApp()
+                } catch {
+                    self.errorMessage = "Failed to copy video: \(error.localizedDescription)"
+                    self.isProcessing = false
+                }
             }
         }
     }

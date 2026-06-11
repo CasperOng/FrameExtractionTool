@@ -15,7 +15,8 @@ struct ContentView: View {
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "hasSeenOnboarding")
     @State private var showingSettings = false
     @State private var isProcessingSharedVideo = false
-    
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
@@ -109,6 +110,11 @@ struct ContentView: View {
             .onAppear {
                 checkForSharedVideo()
             }
+            .onChange(of: scenePhase) { oldPhase, newPhase in
+                if newPhase == .active {
+                    checkForSharedVideo()
+                }
+            }
             .overlay {
                 if isProcessingSharedVideo {
                     ZStack {
@@ -157,6 +163,9 @@ struct ContentView: View {
     }
 
     private func checkForSharedVideo() {
+        // Don't check if already processing
+        guard !isProcessingSharedVideo else { return }
+
         // Check if there's a pending video from the share extension
         guard SharedDataManager.shared.hasPendingVideo(),
               let videoURL = SharedDataManager.shared.getPendingVideoURL() else {
@@ -168,6 +177,9 @@ struct ContentView: View {
         Task {
             do {
                 try await videoManager.selectSharedVideo(url: videoURL)
+
+                // Clean up old shared videos
+                try? SharedDataManager.shared.cleanupSharedVideos()
 
                 // Wait a moment for UI to update
                 try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds

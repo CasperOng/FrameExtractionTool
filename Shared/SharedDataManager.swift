@@ -64,7 +64,37 @@ final class SharedDataManager {
 
     // MARK: - File Copying
 
-    /// Copy video from share extension sandbox to main app's temp directory
+    /// Copy video from share extension to shared container
+    func copyVideoToSharedContainer(from sourceURL: URL) throws -> URL {
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
+            throw NSError(domain: "SharedDataManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to access App Group container"])
+        }
+
+        let fileManager = FileManager.default
+        let sharedVideosDirectory = containerURL.appendingPathComponent("SharedVideos", isDirectory: true)
+
+        // Create directory if it doesn't exist
+        if !fileManager.fileExists(atPath: sharedVideosDirectory.path) {
+            try fileManager.createDirectory(at: sharedVideosDirectory, withIntermediateDirectories: true)
+        }
+
+        // Generate unique filename
+        let timestamp = Date().timeIntervalSince1970
+        let fileName = "\(timestamp)_\(sourceURL.lastPathComponent)"
+        let destinationURL = sharedVideosDirectory.appendingPathComponent(fileName)
+
+        // Remove existing file if it exists
+        if fileManager.fileExists(atPath: destinationURL.path) {
+            try fileManager.removeItem(at: destinationURL)
+        }
+
+        // Copy the file
+        try fileManager.copyItem(at: sourceURL, to: destinationURL)
+
+        return destinationURL
+    }
+
+    /// Copy video from shared container to main app's temp directory
     func copyVideoToAppContainer(from sourceURL: URL) throws -> URL {
         let fileManager = FileManager.default
         let tempDirectory = fileManager.temporaryDirectory
@@ -80,5 +110,31 @@ final class SharedDataManager {
         try fileManager.copyItem(at: sourceURL, to: destinationURL)
 
         return destinationURL
+    }
+
+    /// Clean up old videos in shared container (call periodically)
+    func cleanupSharedVideos() throws {
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
+            return
+        }
+
+        let sharedVideosDirectory = containerURL.appendingPathComponent("SharedVideos", isDirectory: true)
+        let fileManager = FileManager.default
+
+        guard fileManager.fileExists(atPath: sharedVideosDirectory.path) else {
+            return
+        }
+
+        let contents = try fileManager.contentsOfDirectory(at: sharedVideosDirectory, includingPropertiesForKeys: [.creationDateKey])
+
+        // Delete files older than 24 hours
+        let cutoffDate = Date().addingTimeInterval(-24 * 60 * 60)
+
+        for fileURL in contents {
+            if let creationDate = try? fileURL.resourceValues(forKeys: [.creationDateKey]).creationDate,
+               creationDate < cutoffDate {
+                try? fileManager.removeItem(at: fileURL)
+            }
+        }
     }
 }
