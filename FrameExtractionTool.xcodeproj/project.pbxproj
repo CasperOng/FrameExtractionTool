@@ -257,7 +257,6 @@
 			);
 			dependencies = (
 				42B0D8F22FDABD6D00FD026C /* PBXTargetDependency */,
-				8D77004E6401473100F8EBA1 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				42EC56FB2E4D13EA007B0BF2 /* FrameExtractionTool */,
@@ -311,7 +310,7 @@
 		};
 		B22EAF36086AF86F770C96B1 /* ShareExtension */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1B070AB9E48FE5FE0FE96BBA /* Build configuration list for PBXNativeTarget "ShareExtension" */;
+			buildConfigurationList = 1B070AB9E48FE5FE0FE96BBA /* Build configuration list for <deleted target> */;
 			buildPhases = (
 				C0163FEBE601D3C62632987D /* Sources */,
 				2424B71658287F73DB74D9AB /* Frameworks */,
@@ -370,7 +369,6 @@
 				42EC57052E4D13EB007B0BF2 /* FrameExtractionToolTests */,
 				42EC570F2E4D13EB007B0BF2 /* FrameExtractionToolUITests */,
 				42B0D8E82FDABD6D00FD026C /* ShareExtension */,
-				B22EAF36086AF86F770C96B1 /* ShareExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -471,12 +469,6 @@
 			isa = PBXTargetDependency;
 			target = 42EC56F82E4D13EA007B0BF2 /* FrameExtractionTool */;
 			targetProxy = 42EC57112E4D13EB007B0BF2 /* PBXContainerItemProxy */;
-		};
-		8D77004E6401473100F8EBA1 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = ShareExtension;
-			target = B22EAF36086AF86F770C96B1 /* ShareExtension */;
-			targetProxy = 8E77E75B6C37F6AEB655CDAF /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -884,7 +876,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1B070AB9E48FE5FE0FE96BBA /* Build configuration list for PBXNativeTarget "ShareExtension" */ = {
+		1B070AB9E48FE5FE0FE96BBA /* Build configuration list for <deleted target> */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				B806703076E3DAEAD963485E /* Release */,
