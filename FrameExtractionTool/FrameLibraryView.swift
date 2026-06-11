@@ -3,6 +3,7 @@
 //  FrameExtractionTool
 //
 //  Created by Casper Ong on 14/8/2025.
+//  Redesigned with Liquid Glass by Claude on 11/6/2026.
 //
 
 import SwiftUI
@@ -14,61 +15,45 @@ struct FrameLibraryView: View {
     @State private var selectedFrames: Set<UUID> = []
     @State private var showingDeleteConfirmation = false
     @State private var frameToDelete: ExtractedFrame?
-    
+
     private let columns = [
-        GridItem(.adaptive(minimum: 100, maximum: 150), spacing: 8)
+        GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 12)
     ]
-    
+
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                if videoManager.extractedFrames.isEmpty {
-                    VStack(spacing: 20) {
-                        Image(systemName: "photo.on.rectangle.angled")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.gray)
-                        
-                        Text("No Frames Yet")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        Text("Extract frames from videos to see them here")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach(videoManager.extractedFrames.reversed()) { frame in
-                            FrameThumbnailView(
-                                frame: frame,
-                                isSelecting: isSelecting,
-                                isSelected: selectedFrames.contains(frame.id),
-                                onSelect: { toggleSelection(for: frame) },
-                                onDelete: { deleteFrame(frame) }
-                            )
-                        }
-                    }
-                    .padding()
-                }
-            }
-            .navigationTitle("Extracted Frames")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+        ZStack {
+            // Animated gradient background
+            LinearGradient(
+                colors: [
+                    Color.cyan.opacity(0.2),
+                    Color.blue.opacity(0.2),
+                    Color.purple.opacity(0.2)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            .blur(radius: 100)
+
+            VStack(spacing: 0) {
+                // Custom Navigation Bar
+                HStack {
                     if isSelecting {
                         Button("Cancel") {
                             cancelSelection()
                         }
-                    } else {
-                        EmptyView()
+                        .font(LiquidGlass.Typography.body)
+                        .foregroundStyle(LiquidGlass.Colors.primary)
                     }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack {
+
+                    Spacer()
+
+                    Text(isSelecting ? "\(selectedFrames.count) Selected" : "Library")
+                        .font(LiquidGlass.Typography.headline)
+
+                    Spacer()
+
+                    HStack(spacing: LiquidGlass.Spacing.sm) {
                         if !videoManager.extractedFrames.isEmpty {
                             Button(isSelecting ? "Delete" : "Select") {
                                 if isSelecting {
@@ -77,72 +62,158 @@ struct FrameLibraryView: View {
                                     startSelection()
                                 }
                             }
+                            .font(LiquidGlass.Typography.body)
+                            .foregroundStyle(isSelecting ? (selectedFrames.isEmpty ? .secondary : LiquidGlass.Colors.danger) : LiquidGlass.Colors.primary)
                             .disabled(isSelecting && selectedFrames.isEmpty)
                         }
-                        
+
                         if !isSelecting {
-                            Button("Done") {
+                            Button {
                                 dismiss()
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(.primary)
+                                    .frame(width: 32, height: 32)
+                                    .background {
+                                        Circle()
+                                            .fill(.ultraThinMaterial)
+                                    }
                             }
                         }
                     }
                 }
-            }
-            .alert("Delete Frame", isPresented: $showingDeleteConfirmation) {
-                Button("Delete", role: .destructive) {
-                    if let frame = frameToDelete {
-                        videoManager.deleteExtractedFrame(frame)
-                        frameToDelete = nil
+                .padding(.horizontal, LiquidGlass.Spacing.lg)
+                .padding(.vertical, LiquidGlass.Spacing.md)
+                .background {
+                    Rectangle()
+                        .fill(.ultraThinMaterial)
+                        .ignoresSafeArea()
+                }
+
+                // Content
+                if videoManager.extractedFrames.isEmpty {
+                    EmptyLibraryView()
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 12) {
+                            ForEach(videoManager.extractedFrames.reversed()) { frame in
+                                GlassFrameThumbnail(
+                                    frame: frame,
+                                    isSelecting: isSelecting,
+                                    isSelected: selectedFrames.contains(frame.id),
+                                    onSelect: { toggleSelection(for: frame) },
+                                    onDelete: { deleteFrame(frame) }
+                                )
+                                .transition(.scale.combined(with: .opacity))
+                            }
+                        }
+                        .padding(LiquidGlass.Spacing.lg)
+                        .animation(LiquidGlass.Animation.springy, value: videoManager.extractedFrames.count)
                     }
                 }
-                Button("Cancel", role: .cancel) {
+            }
+        }
+        .alert("Delete Frame", isPresented: $showingDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                if let frame = frameToDelete {
+                    withAnimation(LiquidGlass.Animation.springy) {
+                        videoManager.deleteExtractedFrame(frame)
+                    }
                     frameToDelete = nil
                 }
-            } message: {
-                Text("Are you sure you want to delete this extracted frame?")
+            }
+            Button("Cancel", role: .cancel) {
+                frameToDelete = nil
+            }
+        } message: {
+            Text("This will permanently delete the frame from your photo library.")
+        }
+    }
+
+    private func toggleSelection(for frame: ExtractedFrame) {
+        withAnimation(LiquidGlass.Animation.quick) {
+            if selectedFrames.contains(frame.id) {
+                selectedFrames.remove(frame.id)
+            } else {
+                selectedFrames.insert(frame.id)
             }
         }
     }
-    
-    private func toggleSelection(for frame: ExtractedFrame) {
-        if selectedFrames.contains(frame.id) {
-            selectedFrames.remove(frame.id)
-        } else {
-            selectedFrames.insert(frame.id)
+
+    private func startSelection() {
+        withAnimation(LiquidGlass.Animation.springy) {
+            isSelecting = true
+            selectedFrames.removeAll()
         }
     }
-    
-    private func startSelection() {
-        isSelecting = true
-        selectedFrames.removeAll()
-    }
-    
+
     private func cancelSelection() {
-        isSelecting = false
-        selectedFrames.removeAll()
+        withAnimation(LiquidGlass.Animation.springy) {
+            isSelecting = false
+            selectedFrames.removeAll()
+        }
     }
-    
+
     private func deleteFrame(_ frame: ExtractedFrame) {
         frameToDelete = frame
         showingDeleteConfirmation = true
     }
-    
+
     private func deleteSelectedFrames() {
         let framesToDelete = videoManager.extractedFrames.filter { selectedFrames.contains($0.id) }
-        videoManager.deleteExtractedFrames(framesToDelete)
+        withAnimation(LiquidGlass.Animation.springy) {
+            videoManager.deleteExtractedFrames(framesToDelete)
+        }
         cancelSelection()
     }
 }
 
-struct FrameThumbnailView: View {
+// MARK: - Empty Library View
+
+struct EmptyLibraryView: View {
+    var body: some View {
+        VStack(spacing: LiquidGlass.Spacing.lg) {
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .fill(LiquidGlass.Colors.primary.opacity(0.1))
+                    .frame(width: 120, height: 120)
+
+                Image(systemName: "photo.stack")
+                    .font(.system(size: 60, weight: .semibold))
+                    .foregroundStyle(LiquidGlass.Colors.primary.gradient)
+            }
+
+            VStack(spacing: LiquidGlass.Spacing.xs) {
+                Text("No Frames Yet")
+                    .font(LiquidGlass.Typography.title2)
+                    .fontWeight(.bold)
+
+                Text("Extract frames from videos\nto see them here")
+                    .font(LiquidGlass.Typography.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Glass Frame Thumbnail
+
+struct GlassFrameThumbnail: View {
     let frame: ExtractedFrame
     let isSelecting: Bool
     let isSelected: Bool
     let onSelect: () -> Void
     let onDelete: () -> Void
-    
+
     @State private var showingFullScreen = false
-    
+
     var body: some View {
         Button {
             if isSelecting {
@@ -152,81 +223,94 @@ struct FrameThumbnailView: View {
             }
         } label: {
             ZStack {
+                // Frame Image
                 Image(uiImage: frame.image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(width: 100, height: 100)
+                    .frame(height: 180)
                     .clipped()
-                    .cornerRadius(8)
-                    .overlay(
-                        VStack {
-                            Spacer()
-                            HStack {
-                                Spacer()
-                                Image(systemName: "clock")
-                                    .font(.caption2)
-                                    .foregroundColor(.white)
-                                Text(frame.originalMarkedFrame.timeString)
-                                    .font(.caption2)
-                                    .foregroundColor(.white)
-                                    .monospacedDigit()
-                            }
-                            .padding(4)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(4)
-                            .padding(4)
+                    .clipShape(RoundedRectangle(cornerRadius: LiquidGlass.CornerRadius.lg, style: .continuous))
+
+                // Time Badge
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock.fill")
+                                .font(.system(size: 10, weight: .semibold))
+                            Text(frame.originalMarkedFrame.timeString)
+                                .font(LiquidGlass.Typography.caption)
+                                .monospacedDigit()
                         }
-                    )
-                    .overlay(
-                        // Selection overlay
-                        isSelecting ? RoundedRectangle(cornerRadius: 8)
-                            .stroke(isSelected ? .blue : .gray, lineWidth: 3)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(isSelected ? .blue.opacity(0.2) : .clear)
-                            ) : nil
-                    )
-                
-                // Selection checkmark
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background {
+                            Capsule()
+                                .fill(.ultraThinMaterial)
+                        }
+                        .padding(8)
+                    }
+                }
+
+                // Selection Overlay
                 if isSelecting {
+                    RoundedRectangle(cornerRadius: LiquidGlass.CornerRadius.lg, style: .continuous)
+                        .strokeBorder(isSelected ? LiquidGlass.Colors.primary : Color.white.opacity(0.3), lineWidth: 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: LiquidGlass.CornerRadius.lg, style: .continuous)
+                                .fill(isSelected ? LiquidGlass.Colors.primary.opacity(0.3) : .clear)
+                        )
+
                     VStack {
                         HStack {
                             Spacer()
                             Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                                .font(.title3)
-                                .foregroundColor(isSelected ? .blue : .gray)
-                                .background(Circle().fill(.white))
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundStyle(isSelected ? LiquidGlass.Colors.primary : .white)
+                                .background {
+                                    Circle()
+                                        .fill(.white)
+                                        .frame(width: 24, height: 24)
+                                }
+                                .padding(12)
                         }
                         Spacer()
                     }
-                    .padding(8)
                 }
             }
+            .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 6)
         }
+        .buttonStyle(.plain)
         .onLongPressGesture {
             if !isSelecting {
                 onDelete()
             }
         }
         .fullScreenCover(isPresented: $showingFullScreen) {
-            FullScreenImageView(image: frame.image) {
+            GlassFullScreenImageView(image: frame.image, timeString: frame.originalMarkedFrame.timeString) {
                 showingFullScreen = false
             }
         }
     }
 }
 
-struct FullScreenImageView: View {
+// MARK: - Glass Full Screen Image View
+
+struct GlassFullScreenImageView: View {
     let image: UIImage
+    let timeString: String
     let onDismiss: () -> Void
-    
+
     @State private var scale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
-    
+    @State private var lastScale: CGFloat = 1.0
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            
+
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
@@ -236,43 +320,86 @@ struct FullScreenImageView: View {
                     SimultaneousGesture(
                         MagnificationGesture()
                             .onChanged { value in
-                                scale = min(max(value, 0.5), 3.0)
+                                scale = max(1.0, min(lastScale * value.magnitude, 4.0))
+                            }
+                            .onEnded { _ in
+                                lastScale = scale
+                                if scale < 1.2 {
+                                    withAnimation(LiquidGlass.Animation.springy) {
+                                        scale = 1.0
+                                        lastScale = 1.0
+                                    }
+                                }
                             },
                         DragGesture()
                             .onChanged { value in
-                                offset = value.translation
+                                if scale > 1.0 {
+                                    offset = value.translation
+                                }
                             }
                             .onEnded { _ in
-                                withAnimation(.spring()) {
-                                    offset = .zero
+                                if scale <= 1.0 {
+                                    withAnimation(LiquidGlass.Animation.springy) {
+                                        offset = .zero
+                                    }
                                 }
                             }
                     )
                 )
                 .onTapGesture(count: 2) {
-                    withAnimation(.spring()) {
-                        scale = scale > 1 ? 1 : 2
-                        offset = .zero
+                    withAnimation(LiquidGlass.Animation.springy) {
+                        if scale > 1.0 {
+                            scale = 1.0
+                            lastScale = 1.0
+                            offset = .zero
+                        } else {
+                            scale = 2.0
+                            lastScale = 2.0
+                        }
                     }
                 }
-            
+
+            // Top Bar
             VStack {
                 HStack {
                     Button {
                         onDismiss()
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(.white)
-                            .background(Circle().fill(.black.opacity(0.3)))
+                            .frame(width: 44, height: 44)
+                            .background {
+                                Circle()
+                                    .fill(.ultraThinMaterial)
+                            }
                     }
-                    .padding()
-                    
+
                     Spacer()
+
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(timeString)
+                            .font(LiquidGlass.Typography.subheadline)
+                            .monospacedDigit()
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background {
+                        Capsule()
+                            .fill(.ultraThinMaterial)
+                    }
                 }
-                
+                .padding(LiquidGlass.Spacing.lg)
+
                 Spacer()
             }
         }
     }
+}
+
+#Preview {
+    FrameLibraryView(videoManager: VideoManager())
 }
