@@ -224,47 +224,69 @@ jobs:
         name: FrameExtractionTool-v${{ steps.app_version.outputs.app_version }}-build${{ steps.app_version.outputs.build_number }}-unsigned
         path: ./release/
         
-    - name: Create Release
+    - name: Generate Release Notes
+      id: release_notes
+      run: |
+        # Get previous tag
+        PREV_TAG=$(git describe --tags --abbrev=0 ${{ github.ref }}^ 2>/dev/null || echo "")
+
+        if [ -z "$PREV_TAG" ]; then
+          echo "changelog=Initial release" >> $GITHUB_OUTPUT
+        else
+          CHANGELOG=$(git log --oneline ${PREV_TAG}..${{ github.ref }} | sed 's/^/- /')
+          # Escape newlines for GitHub output
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create Pre-Release
       uses: softprops/action-gh-release@v2
       with:
         files: |
           ./release/FrameExtractionTool-unsigned.ipa
-        name: FrameExtractionTool ${{ steps.app_version.outputs.release_version }}
+        name: FrameExtractionTool ${{ steps.app_version.outputs.release_version }} (Pre-Release)
         body: |
-          ## FrameExtractionTool ${{ steps.app_version.outputs.release_version }}
-          
-          ### 📱 What's New
-          <!-- Add release notes here -->
-          
+          ## 🧪 FrameExtractionTool ${{ steps.app_version.outputs.release_version }} - Pre-Release
+
+          > **⚠️ This is a pre-release build for testing purposes.**
+
+          ### 📱 What's Changed
+          ${{ steps.release_notes.outputs.changelog }}
+
           ### 📋 Build Information
           - **Version**: ${{ steps.app_version.outputs.release_version }}
           - **Build**: ${{ steps.app_version.outputs.build_number }}
           - **iOS Target**: 17.0+
           - **Architecture**: Universal (iPhone/iPad)
-          
+          - **Commit**: `${{ github.sha }}`
+
           ### 📦 Installation
-          
+
           #### For Developers:
           1. Download the `FrameExtractionTool-unsigned.ipa` file
           2. Use Xcode or developer tools to install on your device
           3. Requires valid developer certificate and provisioning profile
-          
+
           #### For Enterprise/Internal Distribution:
           - Contact your IT administrator for installation assistance
           - Enterprise certificates may be required
-          
+
           ### ⚠️ Important Notes
-          - This is an **unsigned** build
+          - This is an **unsigned pre-release build**
+          - Intended for testing and development only
           - Installation requires developer tools or enterprise distribution
-          - For App Store distribution, use signed builds through official channels
-          
+          - May contain experimental features or bugs
+          - For stable releases, use production builds
+
           ### 🔧 Technical Details
           - Built with latest Xcode and iOS SDK
           - Swift 5.0 with modern concurrency
           - SwiftUI + AVFoundation architecture
-          
+          - Includes Share Extension for importing videos
+
           ---
-          
-          Built automatically by GitHub Actions 🤖
+
+          🤖 Built automatically by GitHub Actions
         draft: false
-        prerelease: false
+        prerelease: true

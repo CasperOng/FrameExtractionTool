@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var showingFrameLibrary = false
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "hasSeenOnboarding")
     @State private var showingSettings = false
+    @State private var isProcessingSharedVideo = false
     
     var body: some View {
         NavigationStack {
@@ -105,6 +106,28 @@ struct ContentView: View {
                     }
                 }
             }
+            .onAppear {
+                checkForSharedVideo()
+            }
+            .overlay {
+                if isProcessingSharedVideo {
+                    ZStack {
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+
+                        VStack(spacing: 20) {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                            Text("Loading shared video...")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                        }
+                        .padding(40)
+                        .background(.regularMaterial)
+                        .cornerRadius(16)
+                    }
+                }
+            }
         }
         .sheet(isPresented: $showingVideoPicker) {
             VideoPickerView(videoManager: videoManager) {
@@ -130,6 +153,37 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
+        }
+    }
+
+    private func checkForSharedVideo() {
+        // Check if there's a pending video from the share extension
+        guard SharedDataManager.shared.hasPendingVideo(),
+              let videoURL = SharedDataManager.shared.getPendingVideoURL() else {
+            return
+        }
+
+        isProcessingSharedVideo = true
+
+        Task {
+            do {
+                try await videoManager.selectSharedVideo(url: videoURL)
+
+                // Wait a moment for UI to update
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+
+                await MainActor.run {
+                    isProcessingSharedVideo = false
+                    showingVideoPlayer = true
+                }
+            } catch {
+                print("Failed to load shared video: \(error)")
+                await MainActor.run {
+                    isProcessingSharedVideo = false
+                    // Clear the pending video so we don't try again
+                    SharedDataManager.shared.clearPendingVideo()
+                }
+            }
         }
     }
 }
