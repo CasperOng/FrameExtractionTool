@@ -68,21 +68,29 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		42B0D8EA2FDABD6D00FD026C /* ShareExtension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = ShareExtension;
 			sourceTree = "<group>";
 		};
 		42EC56FB2E4D13EA007B0BF2 /* FrameExtractionTool */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = FrameExtractionTool;
 			sourceTree = "<group>";
 		};
 		42EC57092E4D13EB007B0BF2 /* FrameExtractionToolTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = FrameExtractionToolTests;
 			sourceTree = "<group>";
 		};
 		42EC57132E4D13EB007B0BF2 /* FrameExtractionToolUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = FrameExtractionToolUITests;
 			sourceTree = "<group>";
 		};
@@ -409,7 +417,7 @@
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ShareExtension;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -440,7 +448,7 @@
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ShareExtension;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
