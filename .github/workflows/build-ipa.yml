@@ -70,17 +70,30 @@ jobs:
         # Get the latest iOS SDK dynamically
         LATEST_IOS_SDK=$(xcodebuild -showsdks | grep 'iOS' | tail -1 | awk '{print $NF}')
         XCODE_VERSION=$(xcodebuild -version | head -1 | awk '{print $2}')
-        
+
+        # Calculate build number based on commit count
+        BUILD_NUMBER=$(git rev-list --count HEAD)
+
         echo "latest_ios_sdk=${LATEST_IOS_SDK}" >> $GITHUB_OUTPUT
         echo "xcode_version=${XCODE_VERSION}" >> $GITHUB_OUTPUT
-        
+        echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+
         echo "Latest iOS SDK: ${LATEST_IOS_SDK}"
         echo "Xcode Version: ${XCODE_VERSION}"
+        echo "Build Number (from commit count): ${BUILD_NUMBER}"
         
     - name: Clean Build Directory
       run: |
         rm -rf build/
         mkdir -p build/
+
+    - name: Update Build Number in Xcode Project
+      run: |
+        BUILD_NUMBER=$(git rev-list --count HEAD)
+        echo "Setting build number to: $BUILD_NUMBER"
+
+        # Update all occurrences of CURRENT_PROJECT_VERSION
+        sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/g" FrameExtractionTool.xcodeproj/project.pbxproj
         
     - name: Build Project
       run: |
@@ -126,7 +139,7 @@ jobs:
       id: app_version
       run: |
         APP_VERSION=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'MARKETING_VERSION' | awk '{print $3}' | head -1)
-        BUILD_NUMBER=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'CURRENT_PROJECT_VERSION' | awk '{print $3}' | head -1)
+        BUILD_NUMBER=$(git rev-list --count HEAD)
         echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
         echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
         echo "App Version: ${APP_VERSION}"
@@ -218,8 +231,8 @@ jobs:
       id: app_version
       run: |
         APP_VERSION=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'MARKETING_VERSION' | awk '{print $3}' | head -1)
-        BUILD_NUMBER=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'CURRENT_PROJECT_VERSION' | awk '{print $3}' | head -1)
-        
+        BUILD_NUMBER=$(git rev-list --count HEAD)
+
         # Extract version from Git tag for release title
         GIT_TAG_VERSION=${GITHUB_REF#refs/tags/}
         echo "release_version=${GIT_TAG_VERSION}" >> $GITHUB_OUTPUT
