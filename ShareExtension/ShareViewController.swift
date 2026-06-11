@@ -31,52 +31,75 @@ struct ShareExtensionView: View {
     let extensionContext: NSExtensionContext?
     @State private var isProcessing = false
     @State private var errorMessage: String?
+    @State private var successMessage: String?
 
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
                 if isProcessing {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                    Text("Processing video...")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                } else if let error = errorMessage {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.red)
-                    Text("Error")
-                        .font(.title2.bold())
-                    Text(error)
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding()
-
-                    Button("Cancel") {
-                        cancelExtension()
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        Text("Processing video...")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                        Text("Opening Frame Extractor...")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
-                    .buttonStyle(.bordered)
+                } else if let success = successMessage {
+                    VStack(spacing: 16) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.green)
+                        Text("Ready!")
+                            .font(.title2.bold())
+                        Text(success)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                } else if let error = errorMessage {
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.red)
+                        Text("Error")
+                            .font(.title2.bold())
+                        Text(error)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+
+                        Button("Cancel") {
+                            cancelExtension()
+                        }
+                        .buttonStyle(.bordered)
+                    }
                 } else {
-                    Image(systemName: "video.fill")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.blue.gradient)
-                    Text("Opening in Frame Extractor")
-                        .font(.title2.bold())
-                    Text("Your video will be ready for frame extraction")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding()
+                    VStack(spacing: 16) {
+                        Image(systemName: "play.rectangle.on.rectangle.fill")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.blue)
+                        Text("Frame Extractor")
+                            .font(.title2.bold())
+                        Text("Extract frames from this video")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
                 }
             }
             .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .navigationTitle("Frame Extractor")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        cancelExtension()
+                    if !isProcessing {
+                        Button("Cancel") {
+                            cancelExtension()
+                        }
                     }
                 }
             }
@@ -146,12 +169,14 @@ struct ShareExtensionView: View {
                 // Copy video to shared container
                 do {
                     let copiedURL = try SharedDataManager.shared.copyVideoToSharedContainer(from: videoURL)
-
-                    // Save the copied video URL to shared storage
                     SharedDataManager.shared.savePendingVideo(url: copiedURL)
 
-                    // Open the main app
-                    self.openMainApp()
+                    self.successMessage = "Launching Frame Extractor..."
+
+                    // Give UI time to update before opening app
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        self.openMainApp()
+                    }
                 } catch {
                     self.errorMessage = "Failed to copy video: \(error.localizedDescription)"
                     self.isProcessing = false
@@ -164,12 +189,17 @@ struct ShareExtensionView: View {
         // Open the main app using custom URL scheme
         let urlString = "frameextractor://open?source=share"
         if let url = URL(string: urlString) {
-            // Try using openURL via app extension API
-            self.extensionContext?.open(url, completionHandler: nil)
+            self.extensionContext?.open(url, completionHandler: { success in
+                if success {
+                    print("✅ Successfully opened main app")
+                } else {
+                    print("❌ Failed to open main app")
+                }
+            })
         }
 
-        // Close the extension after a short delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        // Close the extension after delay to allow app to open
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             self.completeExtension()
         }
     }
