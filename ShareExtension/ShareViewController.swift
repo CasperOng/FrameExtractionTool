@@ -115,17 +115,17 @@ struct ShareExtensionView: View {
         }
 
         // Load the video URL
-        videoAttachment.loadItem(forTypeIdentifier: UTType.movie.identifier, options: nil) { [weak self] (item, error) in
+        videoAttachment.loadItem(forTypeIdentifier: UTType.movie.identifier, options: nil) { (item, error) in
             DispatchQueue.main.async {
                 if let error = error {
-                    self?.errorMessage = "Failed to load video: \(error.localizedDescription)"
-                    self?.isProcessing = false
+                    self.errorMessage = "Failed to load video: \(error.localizedDescription)"
+                    self.isProcessing = false
                     return
                 }
 
                 guard let videoURL = item as? URL else {
-                    self?.errorMessage = "Invalid video format"
-                    self?.isProcessing = false
+                    self.errorMessage = "Invalid video format"
+                    self.isProcessing = false
                     return
                 }
 
@@ -133,7 +133,7 @@ struct ShareExtensionView: View {
                 SharedDataManager.shared.savePendingVideo(url: videoURL)
 
                 // Open the main app
-                self?.openMainApp()
+                self.openMainApp()
             }
         }
     }
