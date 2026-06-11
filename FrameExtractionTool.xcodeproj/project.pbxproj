@@ -614,6 +614,9 @@
 				);
 				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = caspernyong.FrameExtractionTool;
+				"INFOPLIST_KEY_CFBundleURLTypes[0].CFBundleTypeRole" = Editor;
+				"INFOPLIST_KEY_CFBundleURLTypes[0].CFBundleURLName" = "caspernyong.FrameExtractionTool";
+				"INFOPLIST_KEY_CFBundleURLTypes[0].CFBundleURLSchemes[0]" = frameextractor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
