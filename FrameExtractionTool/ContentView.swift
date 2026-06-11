@@ -42,7 +42,6 @@ struct ContentView: View {
                             Circle()
                                 .fill(LiquidGlass.Colors.primary.gradient)
                                 .frame(width: 100, height: 100)
-                                .shadow(color: LiquidGlass.Colors.primary.opacity(0.4), radius: 20, x: 0, y: 10)
 
                             Image(systemName: "play.rectangle.on.rectangle.fill")
                                 .font(.system(size: 50, weight: .semibold))
@@ -178,7 +177,6 @@ struct ContentView: View {
                             .background {
                                 Circle()
                                     .fill(.ultraThinMaterial)
-                                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                             }
                     }
                     .padding(.trailing, LiquidGlass.Spacing.lg)
@@ -306,7 +304,6 @@ struct RecentFrameThumbnail: View {
                         }
                         .padding(8)
                 }
-                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
         }
     }
 }

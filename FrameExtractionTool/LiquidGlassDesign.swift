@@ -81,7 +81,6 @@ struct GlassCard: ViewModifier {
             .background {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(.ultraThinMaterial)
-                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
             }
     }
 }
@@ -138,7 +137,6 @@ struct LiquidButtonStyle: ButtonStyle {
                 if isProminent {
                     RoundedRectangle(cornerRadius: LiquidGlass.CornerRadius.md, style: .continuous)
                         .fill(LiquidGlass.Colors.primary.gradient)
-                        .shadow(color: LiquidGlass.Colors.primary.opacity(0.3), radius: 10, x: 0, y: 5)
                 } else {
                     RoundedRectangle(cornerRadius: LiquidGlass.CornerRadius.md, style: .continuous)
                         .fill(.ultraThinMaterial)
@@ -167,7 +165,6 @@ struct GlassIconButton: View {
                 .background {
                     Circle()
                         .fill(color.gradient)
-                        .shadow(color: color.opacity(0.4), radius: 12, x: 0, y: 6)
                 }
         }
         .buttonStyle(.plain)
@@ -198,7 +195,6 @@ struct FloatingActionButton: View {
             .background {
                 Capsule()
                     .fill(LiquidGlass.Colors.primary.gradient)
-                    .shadow(color: LiquidGlass.Colors.primary.opacity(0.4), radius: 20, x: 0, y: 10)
             }
         }
         .buttonStyle(.plain)

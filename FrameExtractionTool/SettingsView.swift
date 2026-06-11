@@ -39,7 +39,6 @@ struct SettingsView: View {
                             Circle()
                                 .fill(LiquidGlass.Colors.primary.gradient)
                                 .frame(width: 80, height: 80)
-                                .shadow(color: LiquidGlass.Colors.primary.opacity(0.4), radius: 15, x: 0, y: 8)
 
                             Image(systemName: "gearshape.fill")
                                 .font(.system(size: 40, weight: .semibold))
@@ -213,7 +212,6 @@ struct SettingsView: View {
                             .background {
                                 Circle()
                                     .fill(.ultraThinMaterial)
-                                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
                             }
                     }
                     .padding(.trailing, LiquidGlass.Spacing.lg)
