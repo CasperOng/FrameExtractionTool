@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		3258722A3144D9A9950FD879 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4CF8235D661DDC050D561FE7 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		42B0D8F32FDABD6D00FD026C /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 42B0D8E92FDABD6D00FD026C /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		42B0D90E2FDABF9C00FD026C /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B0D90C2FDABF9C00FD026C /* SharedDataManager.swift */; };
 		42B0D90F2FDABF9C00FD026C /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B0D90C2FDABF9C00FD026C /* SharedDataManager.swift */; };
@@ -45,7 +44,6 @@
 			dstSubfolderSpec = 13;
 			files = (
 				42B0D8F32FDABD6D00FD026C /* ShareExtension.appex in Embed Foundation Extensions */,
-				3258722A3144D9A9950FD879 /* ShareExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -59,10 +57,6 @@
 		42EC56F92E4D13EA007B0BF2 /* FrameExtractionTool.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FrameExtractionTool.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		42EC57062E4D13EB007B0BF2 /* FrameExtractionToolTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FrameExtractionToolTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		42EC57102E4D13EB007B0BF2 /* FrameExtractionToolUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FrameExtractionToolUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		4CF8235D661DDC050D561FE7 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		6306D9C1447FCA52C8028242 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; name = Info.plist; path = ShareExtension/Info.plist; sourceTree = "<group>"; };
-		C27664F7F16E3ED241D489FF /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ShareViewController.swift; path = ShareExtension/ShareViewController.swift; sourceTree = "<group>"; };
-		FECA4FA0A978F97FF2B88C52 /* ShareExtension.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; name = ShareExtension.entitlements; path = ShareExtension/ShareExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -146,7 +140,6 @@
 				42B0D8EA2FDABD6D00FD026C /* ShareExtension */,
 				42EC56FA2E4D13EA007B0BF2 /* Products */,
 				D10D03536AF6B3364780E3BB /* Frameworks */,
-				B6928DB4A570C252E240CAFD /* ShareExtension */,
 			);
 			sourceTree = "<group>";
 		};
@@ -156,20 +149,8 @@
 				42EC56F92E4D13EA007B0BF2 /* FrameExtractionTool.app */,
 				42EC57062E4D13EB007B0BF2 /* FrameExtractionToolTests.xctest */,
 				42EC57102E4D13EB007B0BF2 /* FrameExtractionToolUITests.xctest */,
-				42B0D8E92FDABD6D00FD026C /* ShareExtension.appex */,
-				4CF8235D661DDC050D561FE7 /* ShareExtension.appex */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		B6928DB4A570C252E240CAFD /* ShareExtension */ = {
-			isa = PBXGroup;
-			children = (
-				C27664F7F16E3ED241D489FF /* ShareViewController.swift */,
-				6306D9C1447FCA52C8028242 /* Info.plist */,
-				FECA4FA0A978F97FF2B88C52 /* ShareExtension.entitlements */,
-			);
-			path = ShareExtension;
 			sourceTree = "<group>";
 		};
 		D10D03536AF6B3364780E3BB /* Frameworks */ = {
