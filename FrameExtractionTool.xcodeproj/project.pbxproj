@@ -7,9 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		42B0D8F32FDABD6D00FD026C /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 42B0D8E92FDABD6D00FD026C /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		42B0D90E2FDABF9C00FD026C /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B0D90C2FDABF9C00FD026C /* SharedDataManager.swift */; };
-		42B0D90F2FDABF9C00FD026C /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B0D90C2FDABF9C00FD026C /* SharedDataManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -18,7 +15,6 @@
 			containerPortal = 42EC56F12E4D13EA007B0BF2 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 42B0D8E82FDABD6D00FD026C;
-			remoteInfo = ShareExtension;
 		};
 		42EC57072E4D13EB007B0BF2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -43,7 +39,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				42B0D8F32FDABD6D00FD026C /* ShareExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -52,32 +47,15 @@
 
 /* Begin PBXFileReference section */
 		3F4F741A5ACD4DEB6F53FEDC /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
-		42B0D8E92FDABD6D00FD026C /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		42B0D90C2FDABF9C00FD026C /* SharedDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedDataManager.swift; sourceTree = "<group>"; };
 		42EC56F92E4D13EA007B0BF2 /* FrameExtractionTool.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FrameExtractionTool.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		42EC57062E4D13EB007B0BF2 /* FrameExtractionToolTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FrameExtractionToolTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		42EC57102E4D13EB007B0BF2 /* FrameExtractionToolUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FrameExtractionToolUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		B1B4361E32366743408C68B8 /* Exceptions for "ShareExtension" folder in "ShareExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 42B0D8E82FDABD6D00FD026C /* ShareExtension */;
-		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		42B0D8EA2FDABD6D00FD026C /* ShareExtension */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				B1B4361E32366743408C68B8 /* Exceptions for "ShareExtension" folder in "ShareExtension" target */,
-			);
-			path = ShareExtension;
-			sourceTree = "<group>";
-		};
 		42EC56FB2E4D13EA007B0BF2 /* FrameExtractionTool */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -136,7 +114,6 @@
 		42B0D90D2FDABF9C00FD026C /* Shared */ = {
 			isa = PBXGroup;
 			children = (
-				42B0D90C2FDABF9C00FD026C /* SharedDataManager.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -148,7 +125,6 @@
 				42EC56FB2E4D13EA007B0BF2 /* FrameExtractionTool */,
 				42EC57092E4D13EB007B0BF2 /* FrameExtractionToolTests */,
 				42EC57132E4D13EB007B0BF2 /* FrameExtractionToolUITests */,
-				42B0D8EA2FDABD6D00FD026C /* ShareExtension */,
 				42EC56FA2E4D13EA007B0BF2 /* Products */,
 				D10D03536AF6B3364780E3BB /* Frameworks */,
 			);
@@ -183,26 +159,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		42B0D8E82FDABD6D00FD026C /* ShareExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 42B0D8F52FDABD6D00FD026C /* Build configuration list for PBXNativeTarget "ShareExtension" */;
-			buildPhases = (
-				42B0D8E52FDABD6D00FD026C /* Sources */,
-				42B0D8E62FDABD6D00FD026C /* Frameworks */,
-				42B0D8E72FDABD6D00FD026C /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				42B0D8EA2FDABD6D00FD026C /* ShareExtension */,
-			);
-			name = ShareExtension;
-			productName = ShareExtension;
-			productReference = 42B0D8E92FDABD6D00FD026C /* ShareExtension.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 		42EC56F82E4D13EA007B0BF2 /* FrameExtractionTool */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 42EC571A2E4D13EB007B0BF2 /* Build configuration list for PBXNativeTarget "FrameExtractionTool" */;
@@ -310,7 +266,6 @@
 				42EC56F82E4D13EA007B0BF2 /* FrameExtractionTool */,
 				42EC57052E4D13EB007B0BF2 /* FrameExtractionToolTests */,
 				42EC570F2E4D13EB007B0BF2 /* FrameExtractionToolUITests */,
-				42B0D8E82FDABD6D00FD026C /* ShareExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -351,7 +306,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				42B0D90F2FDABF9C00FD026C /* SharedDataManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -359,7 +313,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				42B0D90E2FDABF9C00FD026C /* SharedDataManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -382,7 +335,6 @@
 /* Begin PBXTargetDependency section */
 		42B0D8F22FDABD6D00FD026C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 42B0D8E82FDABD6D00FD026C /* ShareExtension */;
 			targetProxy = 42B0D8F12FDABD6D00FD026C /* PBXContainerItemProxy */;
 		};
 		42EC57082E4D13EB007B0BF2 /* PBXTargetDependency */ = {
@@ -401,13 +353,10 @@
 		42B0D8F62FDABD6D00FD026C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P4689DSR8M;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = ShareExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ShareExtension;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -416,7 +365,6 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = caspernyong.FrameExtractionTool.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
@@ -432,13 +380,10 @@
 		42B0D8F72FDABD6D00FD026C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P4689DSR8M;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = ShareExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ShareExtension;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -447,7 +392,6 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = caspernyong.FrameExtractionTool.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
@@ -594,10 +538,6 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Frame Extraction Tool";
-				INFOPLIST_KEY_CFBundleURLTypes = "[{\"CFBundleTypeRole\"=>\"Editor\", \"CFBundleURLName\"=>\"caspernyong.FrameExtractionTool\", \"CFBundleURLSchemes\"=>[\"frameextractor\"]}]";
-				INFOPLIST_KEY_CFBundleURLTypes_0_CFBundleTypeRole = Editor;
-				INFOPLIST_KEY_CFBundleURLTypes_0_CFBundleURLName = caspernyong.FrameExtractionTool;
-				INFOPLIST_KEY_CFBundleURLTypes_0_CFBundleURLSchemes_0 = frameextractor;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "This app needs permission to save extracted video frames to your photo library.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photo library to select videos and save extracted frames.";
@@ -614,9 +554,6 @@
 				);
 				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = caspernyong.FrameExtractionTool;
-				"INFOPLIST_KEY_CFBundleURLTypes[0].CFBundleTypeRole" = Editor;
-				"INFOPLIST_KEY_CFBundleURLTypes[0].CFBundleURLName" = "caspernyong.FrameExtractionTool";
-				"INFOPLIST_KEY_CFBundleURLTypes[0].CFBundleURLSchemes[0]" = frameextractor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -642,10 +579,6 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Frame Extraction Tool";
-				INFOPLIST_KEY_CFBundleURLTypes = "[{\"CFBundleTypeRole\"=>\"Editor\", \"CFBundleURLName\"=>\"caspernyong.FrameExtractionTool\", \"CFBundleURLSchemes\"=>[\"frameextractor\"]}]";
-				INFOPLIST_KEY_CFBundleURLTypes_0_CFBundleTypeRole = Editor;
-				INFOPLIST_KEY_CFBundleURLTypes_0_CFBundleURLName = caspernyong.FrameExtractionTool;
-				INFOPLIST_KEY_CFBundleURLTypes_0_CFBundleURLSchemes_0 = frameextractor;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "This app needs permission to save extracted video frames to your photo library.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photo library to select videos and save extracted frames.";
@@ -761,15 +694,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		42B0D8F52FDABD6D00FD026C /* Build configuration list for PBXNativeTarget "ShareExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				42B0D8F62FDABD6D00FD026C /* Debug */,
-				42B0D8F72FDABD6D00FD026C /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		42EC56F42E4D13EA007B0BF2 /* Build configuration list for PBXProject "FrameExtractionTool" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

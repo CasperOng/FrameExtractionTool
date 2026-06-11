@@ -32,17 +32,6 @@ final class VideoManager: ObservableObject {
         selectedVideoURL = url
     }
 
-    func selectSharedVideo(url: URL) async throws {
-        // Copy video from share extension sandbox to app's temp directory
-        let copiedURL = try SharedDataManager.shared.copyVideoToAppContainer(from: url)
-
-        // Select the copied video
-        selectedVideoURL = copiedURL
-
-        // Clear the pending video flag
-        SharedDataManager.shared.clearPendingVideo()
-    }
-    
     func markFrame(at time: CMTime, player: AVPlayer) {
         guard let videoURL = selectedVideoURL else { return }
         

@@ -15,8 +15,6 @@ struct ContentView: View {
     @State private var showingFrameLibrary = false
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "hasSeenOnboarding")
     @State private var showingSettings = false
-    @State private var isProcessingSharedVideo = false
-    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ZStack {
@@ -181,29 +179,6 @@ struct ContentView: View {
                 }
                 Spacer()
             }
-
-            // Processing Overlay
-            if isProcessingSharedVideo {
-                ZStack {
-                    Color.black.opacity(0.2)
-                        .ignoresSafeArea()
-                        .transition(.opacity)
-
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .scaleEffect(1.2)
-
-                        Text("Loading video...")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(.primary)
-                    }
-                    .padding(24)
-                    .background(Color(.systemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .padding(40)
-                    .transition(.scale.combined(with: .opacity))
-                }
-            }
         }
         .sheet(isPresented: $showingVideoPicker) {
             VideoPickerView(videoManager: videoManager) {
@@ -229,49 +204,6 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
-        }
-        .onAppear {
-            checkForSharedVideo()
-        }
-        .onChange(of: scenePhase) { oldPhase, newPhase in
-            if newPhase == .active {
-                checkForSharedVideo()
-            }
-        }
-    }
-
-    private func checkForSharedVideo() {
-        guard !isProcessingSharedVideo else { return }
-        guard SharedDataManager.shared.hasPendingVideo(),
-              let videoURL = SharedDataManager.shared.getPendingVideoURL() else {
-            return
-        }
-
-        withAnimation(.easeInOut(duration: 0.3)) {
-            isProcessingSharedVideo = true
-        }
-
-        Task {
-            do {
-                try await videoManager.selectSharedVideo(url: videoURL)
-                try? SharedDataManager.shared.cleanupSharedVideos()
-                try? await Task.sleep(nanoseconds: 500_000_000)
-
-                await MainActor.run {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        isProcessingSharedVideo = false
-                        showingVideoPlayer = true
-                    }
-                }
-            } catch {
-                print("Failed to load shared video: \(error)")
-                await MainActor.run {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        isProcessingSharedVideo = false
-                    }
-                    SharedDataManager.shared.clearPendingVideo()
-                }
-            }
         }
     }
 }
