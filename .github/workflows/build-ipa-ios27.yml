@@ -1,0 +1,303 @@
+name: Build IPA (iOS 27 / Xcode 27)
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      build_configuration:
+        description: 'Build Configuration'
+        required: true
+        default: 'Release'
+        type: choice
+        options:
+        - Release
+        - Debug
+
+env:
+  XCODE_VERSION: '27.0'
+  IOS_SDK: 'iphoneos27.0'
+
+jobs:
+  build:
+    name: Build and Archive (iOS 27)
+    runs-on: macos-15
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Xcode 27
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '27.0'
+
+    - name: Select Xcode Version
+      run: |
+        # Use Xcode 27
+        XCODE_27=$(find /Applications -maxdepth 1 -name "Xcode_27*.app" -o -name "Xcode-27*.app" | head -1)
+        if [ -n "$XCODE_27" ]; then
+          echo "Using Xcode 27: $XCODE_27"
+          sudo xcode-select -switch "$XCODE_27/Contents/Developer"
+        else
+          echo "Xcode 27 not found, using latest available"
+          LATEST_XCODE=$(find /Applications -maxdepth 1 -name "Xcode*.app" -not -path "*/Xcode Helper.app" | sort -V | tail -1)
+          sudo xcode-select -switch "$LATEST_XCODE/Contents/Developer"
+        fi
+
+    - name: Show Xcode Version
+      run: |
+        xcodebuild -version
+        xcode-select -print-path
+
+    - name: Show Available Simulators and SDKs
+      run: |
+        xcrun simctl list devices available
+        echo "Available iOS SDKs:"
+        xcodebuild -showsdks | grep iOS
+
+    - name: Download iOS 27 Platform
+      run: |
+        # Download iOS 27 platform if available
+        sudo xcodebuild -downloadPlatform iOS || true
+        echo "iOS SDKs after download:"
+        xcodebuild -showsdks | grep iOS
+
+    - name: Cache Derived Data
+      uses: actions/cache@v3
+      with:
+        path: ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-ios27-derived-data-${{ hashFiles('**/*.swift', '**/*.m', '**/*.h') }}
+        restore-keys: |
+          ${{ runner.os }}-ios27-derived-data-
+
+    - name: Get Dynamic Build Info
+      id: build_info
+      run: |
+        # Get the iOS 27 SDK or latest available
+        IOS_27_SDK=$(xcodebuild -showsdks | grep 'iOS 27' | tail -1 | awk '{print $NF}')
+        if [ -z "$IOS_27_SDK" ]; then
+          IOS_27_SDK=$(xcodebuild -showsdks | grep 'iOS' | tail -1 | awk '{print $NF}')
+          echo "⚠️ iOS 27 SDK not found, using latest: $IOS_27_SDK"
+        fi
+        XCODE_VERSION=$(xcodebuild -version | head -1 | awk '{print $2}')
+
+        echo "ios_sdk=${IOS_27_SDK}" >> $GITHUB_OUTPUT
+        echo "xcode_version=${XCODE_VERSION}" >> $GITHUB_OUTPUT
+
+        echo "iOS SDK: ${IOS_27_SDK}"
+        echo "Xcode Version: ${XCODE_VERSION}"
+
+    - name: Clean Build Directory
+      run: |
+        rm -rf build/
+        mkdir -p build/
+
+    - name: Build Project for iOS 27
+      run: |
+        set -o pipefail
+        xcodebuild \
+          -project FrameExtractionTool.xcodeproj \
+          -scheme FrameExtractionTool \
+          -configuration ${{ github.event.inputs.build_configuration || 'Release' }} \
+          -destination "generic/platform=iOS" \
+          -archivePath build/FrameExtractionTool-iOS27.xcarchive \
+          archive \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGN_IDENTITY="" \
+          PROVISIONING_PROFILE="" \
+          DEVELOPMENT_TEAM="" \
+          -allowProvisioningUpdates \
+          | tee xcodebuild-ios27.log
+
+    - name: Create Payload Directory
+      run: |
+        mkdir -p build/Payload
+        if [ -d "build/FrameExtractionTool-iOS27.xcarchive/Products/Applications/FrameExtractionTool.app" ]; then
+          cp -r build/FrameExtractionTool-iOS27.xcarchive/Products/Applications/FrameExtractionTool.app build/Payload/
+        else
+          echo "Error: App not found in archive"
+          find build/ -name "*.app" -type d
+          exit 1
+        fi
+
+    - name: Generate IPA
+      run: |
+        cd build
+        zip -r FrameExtractionTool-iOS27-unsigned.ipa Payload/
+
+    - name: Verify IPA Structure
+      run: |
+        cd build
+        unzip -l FrameExtractionTool-iOS27-unsigned.ipa | head -20
+        ls -la FrameExtractionTool-iOS27-unsigned.ipa
+
+    - name: Get App Version
+      id: app_version
+      run: |
+        APP_VERSION=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'MARKETING_VERSION' | awk '{print $3}' | head -1)
+        BUILD_NUMBER=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'CURRENT_PROJECT_VERSION' | awk '{print $3}' | head -1)
+        echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
+        echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+        echo "App Version: ${APP_VERSION}"
+        echo "Build Number: ${BUILD_NUMBER}"
+
+    - name: Upload IPA Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: FrameExtractionTool-iOS27-v${{ steps.app_version.outputs.app_version }}-build${{ steps.app_version.outputs.build_number }}-unsigned
+        path: build/FrameExtractionTool-iOS27-unsigned.ipa
+        retention-days: 30
+
+    - name: Upload Archive Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: FrameExtractionTool-iOS27-archive-v${{ steps.app_version.outputs.app_version }}
+        path: build/FrameExtractionTool-iOS27.xcarchive
+        retention-days: 7
+
+    - name: Generate Build Summary
+      run: |
+        echo "## 📱 iOS 27 Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| **App Version** | ${{ steps.app_version.outputs.app_version }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Build Number** | ${{ steps.app_version.outputs.build_number }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Configuration** | ${{ github.event.inputs.build_configuration || 'Release' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Xcode Version** | ${{ steps.build_info.outputs.xcode_version }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **iOS SDK** | ${{ steps.build_info.outputs.ios_sdk }} (iOS 27 Target) |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Runner OS** | ${{ runner.os }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Artifacts Generated" >> $GITHUB_STEP_SUMMARY
+        echo "- **Unsigned IPA (iOS 27)**: \`FrameExtractionTool-iOS27-unsigned.ipa\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Xcode Archive**: \`FrameExtractionTool-iOS27.xcarchive\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔽 Download" >> $GITHUB_STEP_SUMMARY
+        echo "The unsigned IPA can be downloaded from the **Artifacts** section of this workflow run." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "> ⚠️ **Note**: This is an unsigned build targeted for iOS 27+. For installation on physical devices, code signing is required." >> $GITHUB_STEP_SUMMARY
+
+    - name: Upload Build Logs
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: build-logs-ios27-${{ github.run_number }}
+        path: |
+          xcodebuild-ios27.log
+          build/
+        retention-days: 7
+
+  release:
+    name: Create Release (iOS 27)
+    runs-on: macos-15
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Xcode 27
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '27.0'
+
+    - name: Get App Version
+      id: app_version
+      run: |
+        APP_VERSION=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'MARKETING_VERSION' | awk '{print $3}' | head -1)
+        BUILD_NUMBER=$(xcodebuild -project FrameExtractionTool.xcodeproj -showBuildSettings -configuration Release | grep -E 'CURRENT_PROJECT_VERSION' | awk '{print $3}' | head -1)
+
+        # Extract version from Git tag for release title
+        GIT_TAG_VERSION=${GITHUB_REF#refs/tags/}
+        echo "release_version=${GIT_TAG_VERSION}" >> $GITHUB_OUTPUT
+        echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
+        echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+        echo "Git Tag Version: ${GIT_TAG_VERSION}"
+        echo "App Version: ${APP_VERSION}"
+        echo "Build Number: ${BUILD_NUMBER}"
+
+    - name: Download IPA Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: FrameExtractionTool-iOS27-v${{ steps.app_version.outputs.app_version }}-build${{ steps.app_version.outputs.build_number }}-unsigned
+        path: ./release/
+
+    - name: Generate Release Notes
+      id: release_notes
+      run: |
+        # Get previous tag
+        PREV_TAG=$(git describe --tags --abbrev=0 ${{ github.ref }}^ 2>/dev/null || echo "")
+
+        if [ -z "$PREV_TAG" ]; then
+          echo "changelog=Initial release" >> $GITHUB_OUTPUT
+        else
+          CHANGELOG=$(git log --oneline ${PREV_TAG}..${{ github.ref }} | sed 's/^/- /')
+          # Escape newlines for GitHub output
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Upload to Existing Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          ./release/FrameExtractionTool-iOS27-unsigned.ipa
+        name: FrameExtractionTool ${{ steps.app_version.outputs.release_version }} (Pre-Release)
+        body: |
+          ## 🧪 FrameExtractionTool ${{ steps.app_version.outputs.release_version }} - Pre-Release
+
+          > **⚠️ This is a pre-release build for testing purposes.**
+
+          ### 📱 What's Changed
+          ${{ steps.release_notes.outputs.changelog }}
+
+          ### 📋 Build Information
+          - **Version**: ${{ steps.app_version.outputs.release_version }}
+          - **Build**: ${{ steps.app_version.outputs.build_number }}
+          - **iOS Target**: 17.0+ and 27.0+
+          - **Architecture**: Universal (iPhone/iPad)
+          - **Commit**: `${{ github.sha }}`
+
+          ### 📦 Downloads
+
+          **Two builds available:**
+          - `FrameExtractionTool-unsigned.ipa` - Standard build (iOS 17+)
+          - `FrameExtractionTool-iOS27-unsigned.ipa` - iOS 27 optimized build (iOS 27+)
+
+          ### 📦 Installation
+
+          #### For Developers:
+          1. Download the appropriate IPA file
+          2. Use Xcode or developer tools to install on your device
+          3. Requires valid developer certificate and provisioning profile
+
+          #### For Enterprise/Internal Distribution:
+          - Contact your IT administrator for installation assistance
+          - Enterprise certificates may be required
+
+          ### ⚠️ Important Notes
+          - These are **unsigned pre-release builds**
+          - Intended for testing and development only
+          - Installation requires developer tools or enterprise distribution
+          - May contain experimental features or bugs
+          - For stable releases, use production builds
+
+          ### 🔧 Technical Details
+          - Built with Xcode 27 and iOS 27 SDK
+          - Swift 5.0 with modern concurrency
+          - SwiftUI + AVFoundation architecture
+          - Includes Share Extension for importing videos
+
+          ---
+
+          🤖 Built automatically by GitHub Actions
+        draft: false
+        prerelease: true
