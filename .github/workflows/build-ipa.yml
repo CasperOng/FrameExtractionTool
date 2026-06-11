@@ -135,9 +135,10 @@ jobs:
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: FrameExtractionTool-v${{ steps.app_version.outputs.app_version }}-build${{ steps.app_version.outputs.build_number }}-unsigned
+        name: FrameExtractionTool-v${{ steps.app_version.outputs.app_version }}-build${{ steps.app_version.outputs.build_number }}-unsigned.ipa
         path: build/FrameExtractionTool-unsigned.ipa
         retention-days: 30
+        if-no-files-found: error
         
     - name: Upload Archive Artifact
       uses: actions/upload-artifact@v4
@@ -164,10 +165,29 @@ jobs:
         echo "- **Unsigned IPA**: \`FrameExtractionTool-unsigned.ipa\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Xcode Archive**: \`FrameExtractionTool.xcarchive\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🔽 Download" >> $GITHUB_STEP_SUMMARY
-        echo "The unsigned IPA can be downloaded from the **Artifacts** section of this workflow run." >> $GITHUB_STEP_SUMMARY
+        echo "### 🔽 How to Download" >> $GITHUB_STEP_SUMMARY
+        echo "1. Go to **Artifacts** section at the top-right of this workflow run" >> $GITHUB_STEP_SUMMARY
+        echo "2. Download **FrameExtractionTool-v${{ steps.app_version.outputs.app_version }}-build${{ steps.app_version.outputs.build_number }}-unsigned.ipa**" >> $GITHUB_STEP_SUMMARY
+        echo "3. The downloaded file is already an IPA (not a zip)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "> ⚠️ **Note**: This is an unsigned build. For installation on physical devices, code signing is required." >> $GITHUB_STEP_SUMMARY
+        echo "### 📱 Installation Options" >> $GITHUB_STEP_SUMMARY
+        echo "**Option 1: Using Xcode**" >> $GITHUB_STEP_SUMMARY
+        echo "- Open Xcode → Window → Devices and Simulators" >> $GITHUB_STEP_SUMMARY
+        echo "- Select your device" >> $GITHUB_STEP_SUMMARY
+        echo "- Drag and drop the IPA onto the device" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Option 2: Using Finder (macOS 12+)**" >> $GITHUB_STEP_SUMMARY
+        echo "- Connect iPhone to Mac" >> $GITHUB_STEP_SUMMARY
+        echo "- Open Finder → Locations → Your iPhone" >> $GITHUB_STEP_SUMMARY
+        echo "- Drag and drop the IPA onto the window" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Option 3: Using Apple Configurator 2**" >> $GITHUB_STEP_SUMMARY
+        echo "- Open Apple Configurator 2" >> $GITHUB_STEP_SUMMARY
+        echo "- Click Add → Apps" >> $GITHUB_STEP_SUMMARY
+        echo "- Select the IPA file" >> $GITHUB_STEP_SUMMARY
+        echo "- Drag to your device" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "> ⚠️ **Note**: This is an unsigned build for development/testing only." >> $GITHUB_STEP_SUMMARY
         
     - name: Upload Build Logs
       uses: actions/upload-artifact@v4
