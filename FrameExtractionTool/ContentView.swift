@@ -20,189 +20,187 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            // Animated gradient background
-            LinearGradient(
-                colors: [
-                    Color.blue.opacity(0.3),
-                    Color.cyan.opacity(0.2),
-                    Color.purple.opacity(0.2)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            .blur(radius: 100)
+            // Clean background
+            Color(.systemBackground)
+                .ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: LiquidGlass.Spacing.lg) {
+                VStack(spacing: 24) {
                     // Header Section
-                    VStack(spacing: LiquidGlass.Spacing.md) {
+                    VStack(spacing: 12) {
                         // App Icon
-                        ZStack {
-                            Circle()
-                                .fill(LiquidGlass.Colors.primary.gradient)
-                                .frame(width: 100, height: 100)
+                        Image(systemName: "play.rectangle.on.rectangle.fill")
+                            .font(.system(size: 56, weight: .semibold))
+                            .foregroundStyle(.blue)
+                            .symbolEffect(.bounce, value: showingVideoPlayer)
 
-                            Image(systemName: "play.rectangle.on.rectangle.fill")
-                                .font(.system(size: 50, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .symbolEffect(.bounce, value: showingVideoPlayer)
-                        }
-                        .padding(.top, LiquidGlass.Spacing.xl)
-
-                        VStack(spacing: LiquidGlass.Spacing.xxs) {
+                        VStack(spacing: 4) {
                             Text("Frame Extractor")
-                                .font(LiquidGlass.Typography.largeTitle)
-                                .fontWeight(.bold)
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
                                 .foregroundStyle(.primary)
 
-                            Text("Capture perfect moments from your videos")
-                                .font(LiquidGlass.Typography.subheadline)
+                            Text("Extract frames from videos with precision")
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
                         }
                     }
-                    .padding(.horizontal, LiquidGlass.Spacing.lg)
+                    .padding(.vertical, 32)
 
                     // Main Actions Card
-                    VStack(spacing: LiquidGlass.Spacing.md) {
+                    VStack(spacing: 12) {
                         // Primary Action
                         Button {
-                            withAnimation(LiquidGlass.Animation.springy) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
                                 showingVideoPicker = true
                             }
                         } label: {
-                            HStack(spacing: LiquidGlass.Spacing.sm) {
+                            HStack(spacing: 12) {
                                 Image(systemName: "photo.on.rectangle")
-                                    .font(.system(size: 24, weight: .semibold))
+                                    .font(.system(size: 18, weight: .semibold))
                                 Text("Choose Video")
-                                    .font(LiquidGlass.Typography.headline)
+                                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .opacity(0.6)
                             }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 16)
+                            .background(.blue)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
-                        .buttonStyle(LiquidButtonStyle(isProminent: true, size: .large))
 
                         // Secondary Action
                         if !videoManager.extractedFrames.isEmpty {
                             Button {
-                                withAnimation(LiquidGlass.Animation.springy) {
+                                withAnimation(.easeInOut(duration: 0.2)) {
                                     showingFrameLibrary = true
                                 }
                             } label: {
-                                HStack(spacing: LiquidGlass.Spacing.sm) {
+                                HStack(spacing: 12) {
                                     Image(systemName: "photo.stack")
-                                        .font(.system(size: 20, weight: .semibold))
-                                    Text("View \(videoManager.extractedFrames.count) Extracted Frames")
-                                        .font(LiquidGlass.Typography.body)
+                                        .font(.system(size: 18, weight: .semibold))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("View Extracted Frames")
+                                            .font(.system(size: 15, weight: .semibold))
+                                        Text("\(videoManager.extractedFrames.count) frames")
+                                            .font(.caption)
+                                            .opacity(0.6)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .opacity(0.6)
                                 }
+                                .foregroundStyle(.primary)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 16)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .stroke(Color(.separator), lineWidth: 1)
+                                )
                             }
-                            .buttonStyle(LiquidButtonStyle(isProminent: false, size: .medium))
                             .transition(.scale.combined(with: .opacity))
                         }
                     }
-                    .glassCard(cornerRadius: LiquidGlass.CornerRadius.xl, padding: LiquidGlass.Spacing.lg)
-                    .padding(.horizontal, LiquidGlass.Spacing.lg)
+                    .padding(.horizontal, 16)
 
                     // Recent Frames Gallery
                     if !videoManager.extractedFrames.isEmpty {
-                        VStack(alignment: .leading, spacing: LiquidGlass.Spacing.md) {
-                            HStack {
-                                Text("Recently Extracted")
-                                    .font(LiquidGlass.Typography.title3)
-                                    .foregroundStyle(.primary)
-
-                                Spacer()
-
-                                Button {
-                                    showingFrameLibrary = true
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Text("View All")
-                                            .font(LiquidGlass.Typography.subheadline)
-                                        Image(systemName: "chevron.right")
-                                            .font(.system(size: 12, weight: .semibold))
-                                    }
-                                    .foregroundStyle(LiquidGlass.Colors.primary)
-                                }
-                            }
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Recently Extracted")
+                                .font(.system(size: 17, weight: .semibold))
+                                .padding(.horizontal, 16)
 
                             ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: LiquidGlass.Spacing.sm) {
-                                    ForEach(videoManager.extractedFrames.suffix(8), id: \.id) { frame in
-                                        RecentFrameThumbnail(frame: frame)
+                                HStack(spacing: 8) {
+                                    ForEach(videoManager.extractedFrames.suffix(6), id: \.id) { frame in
+                                        VStack(spacing: 0) {
+                                            Image(uiImage: frame.image)
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 100, height: 100)
+                                                .clipped()
+                                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                                            Text(frame.originalMarkedFrame.timeString)
+                                                .font(.caption2)
+                                                .monospacedDigit()
+                                                .foregroundStyle(.secondary)
+                                                .padding(.top, 4)
+                                        }
                                     }
                                 }
+                                .padding(.horizontal, 16)
                             }
                         }
-                        .glassCard(cornerRadius: LiquidGlass.CornerRadius.xl, padding: LiquidGlass.Spacing.lg)
-                        .padding(.horizontal, LiquidGlass.Spacing.lg)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
 
-                    // Quick Stats Card (if frames exist)
+                    // Quick Stats
                     if !videoManager.extractedFrames.isEmpty {
-                        HStack(spacing: LiquidGlass.Spacing.lg) {
-                            StatCard(
+                        HStack(spacing: 12) {
+                            StatTile(
                                 icon: "photo.fill",
-                                value: "\(videoManager.extractedFrames.count)",
-                                label: "Frames"
+                                label: "Frames",
+                                value: "\(videoManager.extractedFrames.count)"
                             )
 
-                            StatCard(
+                            StatTile(
                                 icon: "checkmark.circle.fill",
-                                value: "100%",
-                                label: "Success"
+                                label: "Success",
+                                value: "100%"
                             )
                         }
-                        .padding(.horizontal, LiquidGlass.Spacing.lg)
+                        .padding(.horizontal, 16)
                         .transition(.scale.combined(with: .opacity))
                     }
 
-                    Spacer(minLength: 80)
+                    Spacer(minLength: 40)
                 }
-                .padding(.bottom, LiquidGlass.Spacing.xl)
+                .padding(.vertical, 16)
             }
 
-            // Floating Settings Button
+            // Settings Button
             VStack {
                 HStack {
                     Spacer()
-
                     Button {
                         showingSettings = true
                     } label: {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 20, weight: .semibold))
+                        Image(systemName: "gear")
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(.primary)
-                            .frame(width: 44, height: 44)
-                            .background {
-                                Circle()
-                                    .fill(.ultraThinMaterial)
-                            }
+                            .frame(width: 40, height: 40)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(Circle())
                     }
-                    .padding(.trailing, LiquidGlass.Spacing.lg)
-                    .padding(.top, LiquidGlass.Spacing.md)
+                    .padding(.trailing, 16)
+                    .padding(.top, 12)
                 }
-
                 Spacer()
             }
 
             // Processing Overlay
             if isProcessingSharedVideo {
                 ZStack {
-                    Color.black.opacity(0.4)
+                    Color.black.opacity(0.2)
                         .ignoresSafeArea()
                         .transition(.opacity)
 
-                    VStack(spacing: LiquidGlass.Spacing.lg) {
+                    VStack(spacing: 16) {
                         ProgressView()
-                            .scaleEffect(1.5)
-                            .tint(.white)
+                            .scaleEffect(1.2)
 
                         Text("Loading video...")
-                            .font(LiquidGlass.Typography.headline)
-                            .foregroundStyle(.white)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.primary)
                     }
-                    .glassCard(cornerRadius: LiquidGlass.CornerRadius.xl, padding: LiquidGlass.Spacing.xl)
+                    .padding(24)
+                    .background(Color(.systemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(40)
                     .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -249,7 +247,7 @@ struct ContentView: View {
             return
         }
 
-        withAnimation(LiquidGlass.Animation.smooth) {
+        withAnimation(.easeInOut(duration: 0.3)) {
             isProcessingSharedVideo = true
         }
 
@@ -260,7 +258,7 @@ struct ContentView: View {
                 try? await Task.sleep(nanoseconds: 500_000_000)
 
                 await MainActor.run {
-                    withAnimation(LiquidGlass.Animation.smooth) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
                         isProcessingSharedVideo = false
                         showingVideoPlayer = true
                     }
@@ -268,7 +266,7 @@ struct ContentView: View {
             } catch {
                 print("Failed to load shared video: \(error)")
                 await MainActor.run {
-                    withAnimation(LiquidGlass.Animation.smooth) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
                         isProcessingSharedVideo = false
                     }
                     SharedDataManager.shared.clearPendingVideo()
@@ -278,59 +276,31 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Recent Frame Thumbnail
+// MARK: - Stat Tile
 
-struct RecentFrameThumbnail: View {
-    let frame: ExtractedFrame
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Image(uiImage: frame.image)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 120, height: 120)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: LiquidGlass.CornerRadius.md, style: .continuous))
-                .overlay(alignment: .bottomTrailing) {
-                    Text(frame.originalMarkedFrame.timeString)
-                        .font(LiquidGlass.Typography.caption)
-                        .monospacedDigit()
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background {
-                            Capsule()
-                                .fill(.ultraThinMaterial)
-                        }
-                        .padding(8)
-                }
-        }
-    }
-}
-
-// MARK: - Stat Card
-
-struct StatCard: View {
+struct StatTile: View {
     let icon: String
-    let value: String
     let label: String
+    let value: String
 
     var body: some View {
-        VStack(spacing: LiquidGlass.Spacing.xs) {
+        VStack(alignment: .center, spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 28, weight: .semibold))
-                .foregroundStyle(LiquidGlass.Colors.primary.gradient)
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(.blue)
 
             Text(value)
-                .font(LiquidGlass.Typography.title2)
-                .fontWeight(.bold)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(.primary)
 
             Text(label)
-                .font(LiquidGlass.Typography.caption)
+                .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .glassCard(cornerRadius: LiquidGlass.CornerRadius.lg, padding: LiquidGlass.Spacing.md)
+        .padding(.vertical, 16)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 

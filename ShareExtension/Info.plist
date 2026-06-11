@@ -31,11 +31,13 @@
 				<key>NSExtensionActivationSupportsVideoWithMaxCount</key>
 				<integer>1</integer>
 			</dict>
+			<key>NSExtensionServiceAllowsBinding</key>
+			<true/>
 		</dict>
 		<key>NSExtensionMainStoryboard</key>
 		<string>MainInterface</string>
 		<key>NSExtensionPointIdentifier</key>
-		<string>com.apple.share-services</string>
+		<string>com.apple.services</string>
 		<key>NSExtensionPrincipalClass</key>
 		<string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
 	</dict>
