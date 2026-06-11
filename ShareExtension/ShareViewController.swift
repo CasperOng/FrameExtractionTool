@@ -164,20 +164,12 @@ struct ShareExtensionView: View {
         // Open the main app using custom URL scheme
         let urlString = "frameextractor://open?source=share"
         if let url = URL(string: urlString) {
-            var responder: UIResponder? = self.extensionContext as? UIResponder
-            let selector = sel_registerName("openURL:")
-
-            while responder != nil {
-                if responder?.responds(to: selector) == true {
-                    responder?.perform(selector, with: url)
-                    break
-                }
-                responder = responder?.next
-            }
+            // Try using openURL via app extension API
+            self.extensionContext?.open(url, completionHandler: nil)
         }
 
         // Close the extension after a short delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.completeExtension()
         }
     }

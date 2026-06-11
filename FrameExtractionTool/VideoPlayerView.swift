@@ -104,7 +104,7 @@ struct VideoPlayerView: View {
     let videoURL: URL
     @ObservedObject var videoManager: VideoManager
     let onDismiss: () -> Void
-    
+
     @State private var player: AVPlayer?
     @State private var isPlaying = false
     @State private var currentTime: CMTime = .zero
@@ -117,7 +117,11 @@ struct VideoPlayerView: View {
     @State private var showingScaleOptions = false
     @State private var showingDiscardAlert = false
     @State private var initialMarkedFramesCount = 0
-    
+    @State private var playbackSpeed: Float = 1.0
+    @State private var showingSpeedOptions = false
+    @State private var customSpeedInput: String = "1.0"
+    @State private var showingCustomSpeedAlert = false
+
     private var hasUnsavedChanges: Bool {
         return videoManager.markedFrames.count != initialMarkedFramesCount
     }
@@ -261,7 +265,22 @@ struct VideoPlayerView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack {
+                    HStack(spacing: 12) {
+                        Button {
+                            showingSpeedOptions = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "hare.fill")
+                                Text(String(format: "%.1f×", playbackSpeed))
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(6)
+                        }
+
                         Button {
                             showingScaleOptions = true
                         } label: {
@@ -276,7 +295,7 @@ struct VideoPlayerView: View {
                             .background(.ultraThinMaterial)
                             .cornerRadius(6)
                         }
-                        
+
                         Button {
                             showingHelp = true
                         } label: {
@@ -343,6 +362,26 @@ struct VideoPlayerView: View {
         .sheet(isPresented: $showingScaleOptions) {
             VideoScaleOptionsView(selectedScale: $videoScale)
         }
+        .sheet(isPresented: $showingSpeedOptions) {
+            VideoSpeedOptionsView(selectedSpeed: $playbackSpeed, showingCustomAlert: $showingCustomSpeedAlert, customSpeedInput: $customSpeedInput, onSpeedChange: { speed in
+                setPlaybackSpeed(speed)
+            })
+        }
+        .alert("Custom Playback Speed", isPresented: $showingCustomSpeedAlert) {
+            TextField("Speed (0.25x - 2.0x)", text: $customSpeedInput)
+            Button("Set") {
+                if let speed = Float(customSpeedInput), speed >= 0.25 && speed <= 2.0 {
+                    playbackSpeed = speed
+                    setPlaybackSpeed(speed)
+                    customSpeedInput = "1.0"
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                customSpeedInput = "1.0"
+            }
+        } message: {
+            Text("Enter a custom playback speed between 0.25× and 2.0×")
+        }
     }
     
     private func setupPlayer() {
@@ -401,6 +440,84 @@ struct VideoPlayerView: View {
         Task {
             try await videoManager.extractAllMarkedFrames()
         }
+    }
+
+    private func setPlaybackSpeed(_ speed: Float) {
+        guard let player = player else { return }
+        player.rate = speed
+    }
+}
+
+struct VideoSpeedOptionsView: View {
+    @Binding var selectedSpeed: Float
+    @Binding var showingCustomAlert: Bool
+    @Binding var customSpeedInput: String
+    let onSpeedChange: (Float) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    private let presetSpeeds: [Float] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(presetSpeeds, id: \.self) { speed in
+                        Button {
+                            selectedSpeed = speed
+                            onSpeedChange(speed)
+                            dismiss()
+                        } label: {
+                            HStack {
+                                Text(String(format: "%.2f×", speed))
+                                    .foregroundStyle(.primary)
+                                    .fontWeight(abs(selectedSpeed - speed) < 0.01 ? .semibold : .regular)
+
+                                Spacer()
+
+                                if abs(selectedSpeed - speed) < 0.01 {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.blue)
+                                } else {
+                                    Image(systemName: "circle")
+                                        .foregroundStyle(.gray.opacity(0.3))
+                                }
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Preset Speeds")
+                } footer: {
+                    Text("Select a common playback speed")
+                }
+
+                Section {
+                    Button {
+                        showingCustomAlert = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "slider.horizontal.3")
+                            Text("Custom Speed")
+                                .foregroundStyle(.blue)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.gray)
+                        }
+                    }
+                } footer: {
+                    Text("Set a custom speed between 0.25× and 2.0×")
+                }
+            }
+            .navigationTitle("Playback Speed")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }
 
