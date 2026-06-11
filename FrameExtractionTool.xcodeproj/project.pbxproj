@@ -65,43 +65,24 @@
 		FECA4FA0A978F97FF2B88C52 /* ShareExtension.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; name = ShareExtension.entitlements; path = ShareExtension/ShareExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		42B0D9072FDABF8000FD026C /* Exceptions for "FrameExtractionTool" folder in "ShareExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Shared/SharedDataManager.swift,
-			);
-			target = 42B0D8E82FDABD6D00FD026C /* ShareExtension */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		42B0D8EA2FDABD6D00FD026C /* ShareExtension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = ShareExtension;
 			sourceTree = "<group>";
 		};
 		42EC56FB2E4D13EA007B0BF2 /* FrameExtractionTool */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				42B0D9072FDABF8000FD026C /* Exceptions for "FrameExtractionTool" folder in "ShareExtension" target */,
-			);
 			path = FrameExtractionTool;
 			sourceTree = "<group>";
 		};
 		42EC57092E4D13EB007B0BF2 /* FrameExtractionToolTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = FrameExtractionToolTests;
 			sourceTree = "<group>";
 		};
 		42EC57132E4D13EB007B0BF2 /* FrameExtractionToolUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = FrameExtractionToolUITests;
 			sourceTree = "<group>";
 		};
@@ -180,7 +161,6 @@
 				6306D9C1447FCA52C8028242 /* Info.plist */,
 				FECA4FA0A978F97FF2B88C52 /* ShareExtension.entitlements */,
 			);
-			name = ShareExtension;
 			path = ShareExtension;
 			sourceTree = "<group>";
 		};
