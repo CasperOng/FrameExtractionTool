@@ -18,8 +18,8 @@ on:
         - Debug
 
 env:
-  XCODE_VERSION: '27.0'
-  IOS_SDK: 'iphoneos27.0'
+  XCODE_VERSION: 'latest'
+  BUILD_VARIANT: 'iOS27-Ready'
 
 jobs:
   build:
@@ -30,21 +30,20 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Setup Xcode 27
+    - name: Setup Latest Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '27.0'
+        xcode-version: 'latest'
 
     - name: Select Xcode Version
       run: |
-        # Use Xcode 27
-        XCODE_27=$(find /Applications -maxdepth 1 -name "Xcode_27*.app" -o -name "Xcode-27*.app" | head -1)
-        if [ -n "$XCODE_27" ]; then
-          echo "Using Xcode 27: $XCODE_27"
-          sudo xcode-select -switch "$XCODE_27/Contents/Developer"
+        # Use the latest Xcode available (for future iOS 27 SDK)
+        LATEST_XCODE=$(find /Applications -maxdepth 1 -name "Xcode*.app" -not -path "*/Xcode Helper.app" | sort -V | tail -1)
+        echo "Using latest Xcode: $LATEST_XCODE"
+        if [ -z "$LATEST_XCODE" ]; then
+          echo "No Xcode found, using default"
+          sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
         else
-          echo "Xcode 27 not found, using latest available"
-          LATEST_XCODE=$(find /Applications -maxdepth 1 -name "Xcode*.app" -not -path "*/Xcode Helper.app" | sort -V | tail -1)
           sudo xcode-select -switch "$LATEST_XCODE/Contents/Developer"
         fi
 
@@ -77,18 +76,14 @@ jobs:
     - name: Get Dynamic Build Info
       id: build_info
       run: |
-        # Get the iOS 27 SDK or latest available
-        IOS_27_SDK=$(xcodebuild -showsdks | grep 'iOS 27' | tail -1 | awk '{print $NF}')
-        if [ -z "$IOS_27_SDK" ]; then
-          IOS_27_SDK=$(xcodebuild -showsdks | grep 'iOS' | tail -1 | awk '{print $NF}')
-          echo "⚠️ iOS 27 SDK not found, using latest: $IOS_27_SDK"
-        fi
+        # Get the latest iOS SDK (will be iOS 27 when available)
+        LATEST_IOS_SDK=$(xcodebuild -showsdks | grep 'iOS' | tail -1 | awk '{print $NF}')
         XCODE_VERSION=$(xcodebuild -version | head -1 | awk '{print $2}')
 
-        echo "ios_sdk=${IOS_27_SDK}" >> $GITHUB_OUTPUT
+        echo "ios_sdk=${LATEST_IOS_SDK}" >> $GITHUB_OUTPUT
         echo "xcode_version=${XCODE_VERSION}" >> $GITHUB_OUTPUT
 
-        echo "iOS SDK: ${IOS_27_SDK}"
+        echo "Latest iOS SDK: ${LATEST_IOS_SDK}"
         echo "Xcode Version: ${XCODE_VERSION}"
 
     - name: Clean Build Directory
@@ -96,7 +91,7 @@ jobs:
         rm -rf build/
         mkdir -p build/
 
-    - name: Build Project for iOS 27
+    - name: Build Project with Latest SDK
       run: |
         set -o pipefail
         xcodebuild \
@@ -104,7 +99,7 @@ jobs:
           -scheme FrameExtractionTool \
           -configuration ${{ github.event.inputs.build_configuration || 'Release' }} \
           -destination "generic/platform=iOS" \
-          -archivePath build/FrameExtractionTool-iOS27.xcarchive \
+          -archivePath build/FrameExtractionTool-Latest.xcarchive \
           archive \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO \
@@ -112,13 +107,13 @@ jobs:
           PROVISIONING_PROFILE="" \
           DEVELOPMENT_TEAM="" \
           -allowProvisioningUpdates \
-          | tee xcodebuild-ios27.log
+          | tee xcodebuild-latest.log
 
     - name: Create Payload Directory
       run: |
         mkdir -p build/Payload
-        if [ -d "build/FrameExtractionTool-iOS27.xcarchive/Products/Applications/FrameExtractionTool.app" ]; then
-          cp -r build/FrameExtractionTool-iOS27.xcarchive/Products/Applications/FrameExtractionTool.app build/Payload/
+        if [ -d "build/FrameExtractionTool-Latest.xcarchive/Products/Applications/FrameExtractionTool.app" ]; then
+          cp -r build/FrameExtractionTool-Latest.xcarchive/Products/Applications/FrameExtractionTool.app build/Payload/
         else
           echo "Error: App not found in archive"
           find build/ -name "*.app" -type d
@@ -128,13 +123,13 @@ jobs:
     - name: Generate IPA
       run: |
         cd build
-        zip -r FrameExtractionTool-iOS27-unsigned.ipa Payload/
+        zip -r FrameExtractionTool-Latest-unsigned.ipa Payload/
 
     - name: Verify IPA Structure
       run: |
         cd build
-        unzip -l FrameExtractionTool-iOS27-unsigned.ipa | head -20
-        ls -la FrameExtractionTool-iOS27-unsigned.ipa
+        unzip -l FrameExtractionTool-Latest-unsigned.ipa | head -20
+        ls -la FrameExtractionTool-Latest-unsigned.ipa
 
     - name: Get App Version
       id: app_version
@@ -203,10 +198,10 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Setup Xcode 27
+    - name: Setup Latest Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '27.0'
+        xcode-version: 'latest'
 
     - name: Get App Version
       id: app_version
