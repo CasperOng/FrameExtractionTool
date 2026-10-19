@@ -159,6 +159,48 @@ jobs:
         name: FrameExtractionTool-archive-v${{ steps.app_version.outputs.app_version }}
         path: build/FrameExtractionTool.xcarchive
         retention-days: 7
+
+    - name: Publish Rolling Latest Build
+      # Keeps a stable, public URL for the newest unsigned build:
+      # https://github.com/CasperOng/FrameExtractionTool/releases/download/latest/FrameExtractionTool-unsigned.ipa
+      # The frame-extraction-tool-feather feed pulls the IPA from there.
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release view latest >/dev/null 2>&1 || gh release create latest \
+          --title "Latest unsigned build" \
+          --notes "Rolling unsigned build of main. Signable with Feather or any sideloading tool." \
+          --prerelease
+
+        gh release upload latest build/FrameExtractionTool-unsigned.ipa --clobber
+
+        gh release edit latest --notes "Rolling unsigned build of \`${GITHUB_SHA:0:7}\` for sideloading tools such as Feather.
+
+        | | |
+        | --- | --- |
+        | **Version** | ${{ steps.app_version.outputs.app_version }} |
+        | **Build** | ${{ steps.app_version.outputs.build_number }} |
+        | **Commit** | \`${GITHUB_SHA}\` |
+        | **iOS** | 17.0 or later |
+        | **Built** | $(date -u +%Y-%m-%dT%H:%M:%SZ) |
+
+        Not a release — use the tagged releases for stable versions."
+
+    - name: Ask the Feather feed to refresh
+      # Optional: set a FEED_DISPATCH_TOKEN secret (fine-grained PAT with
+      # contents: read and write on frame-extraction-tool-feather) to refresh
+      # the feed immediately instead of waiting for its schedule.
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push' && env.FEED_DISPATCH_TOKEN != ''
+      env:
+        FEED_DISPATCH_TOKEN: ${{ secrets.FEED_DISPATCH_TOKEN }}
+      run: |
+        curl --fail --silent --show-error \
+          --request POST \
+          --header "Authorization: Bearer ${FEED_DISPATCH_TOKEN}" \
+          --header "Accept: application/vnd.github+json" \
+          https://api.github.com/repos/CasperOng/frame-extraction-tool-feather/dispatches \
+          --data '{"event_type":"frame-extractor-build"}'
         
     - name: Generate Build Summary
       run: |
