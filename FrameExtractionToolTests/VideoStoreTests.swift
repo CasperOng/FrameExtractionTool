@@ -5,6 +5,7 @@
 
 import Foundation
 import Testing
+import UniformTypeIdentifiers
 @testable import FrameExtractionTool
 
 @Suite("Video store", .serialized)
@@ -28,15 +29,36 @@ struct VideoStoreTests {
 
     // MARK: - Type checks
 
-    @Test("Movie containers are accepted")
-    func acceptsMovies() throws {
+    @Test("QuickTime movies are accepted")
+    func acceptsQuickTimeMovies() throws {
+        try expectAccepted("clip.mov")
+    }
+
+    @Test("MPEG-4 movies are accepted")
+    func acceptsMPEG4Movies() throws {
+        try expectAccepted("clip.mp4")
+        try expectAccepted("clip.m4v")
+    }
+
+    @Test("Extensions are matched whatever their case")
+    func acceptsUppercaseExtensions() throws {
+        try expectAccepted("CLIP.MOV")
+        try expectAccepted("Holiday.MP4")
+    }
+
+    @Test("A file with no extension follows the type the system reports")
+    func handlesMissingExtension() throws {
         let directory = try makeTemporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
 
-        for name in ["clip.mov", "clip.mp4", "clip.m4v", "clip.MOV"] {
-            let url = try makeFile(named: name, in: directory)
-            #expect(VideoStore.isSupportedVideo(url), "\(name) should be accepted")
-        }
+        let url = try makeFile(named: "clip", in: directory)
+        let reported = (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType
+        let systemSaysMovie = reported.map(VideoStore.isMovieType) ?? false
+
+        #expect(VideoStore.isSupportedVideo(url) == systemSaysMovie)
+        // A movie type is a movie type, whatever its identifier is.
+        #expect(VideoStore.isMovieType(.quickTimeMovie))
+        #expect(!VideoStore.isMovieType(.plainText))
     }
 
     @Test("Everything else is refused")
@@ -44,10 +66,22 @@ struct VideoStoreTests {
         let directory = try makeTemporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
 
-        for name in ["notes.txt", "report.pdf", "song.mp3", "archive.zip"] {
+        for name in ["notes.txt", "report.pdf", "song.mp3", "archive.zip", "budget.numbers"] {
             let url = try makeFile(named: name, in: directory)
             #expect(!VideoStore.isSupportedVideo(url), "\(name) should be refused")
         }
+    }
+
+    private func expectAccepted(_ name: String) throws {
+        let directory = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let url = try makeFile(named: name, in: directory)
+        let extensionType = UTType(filenameExtension: url.pathExtension.lowercased())?.identifier ?? "none"
+        #expect(
+            VideoStore.isSupportedVideo(url),
+            "\(name) should be accepted (type from name: \(extensionType))"
+        )
     }
 
     // MARK: - Importing

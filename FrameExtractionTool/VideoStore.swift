@@ -48,12 +48,36 @@ enum VideoStore {
 
     // MARK: - Validation
 
+    /// Movie types the app can extract frames from. `Info.plist` declares the
+    /// same set as document types, so other apps offer Frame Extractor for them.
+    nonisolated static let supportedVideoTypes: [UTType] = [
+        .movie,
+        .video,
+        .quickTimeMovie,
+        .mpeg4Movie,
+        .appleProtectedMPEG4Video,
+        .mpeg2Video,
+        .avi,
+    ]
+
     /// Whether the app can extract frames from this file.
+    ///
+    /// Checks the type implied by the file name *and* the type the file system
+    /// reports, because a handed-over file can arrive with either one of them
+    /// missing or mismatched (an AirDropped clip with no extension, for example).
     nonisolated static func isSupportedVideo(_ url: URL) -> Bool {
-        if let type = try? url.resourceValues(forKeys: [.contentTypeKey]).contentType {
-            return type.conforms(to: .movie) || type.conforms(to: .video)
-        }
-        return UTType(filenameExtension: url.pathExtension)?.conforms(to: .movie) ?? false
+        let byExtension = UTType(filenameExtension: url.pathExtension.lowercased())
+        if let byExtension, isMovieType(byExtension) { return true }
+
+        let byFileSystem = (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType
+        if let byFileSystem, isMovieType(byFileSystem) { return true }
+
+        return false
+    }
+
+    /// Whether a type is one of the movie types the app works with.
+    nonisolated static func isMovieType(_ type: UTType) -> Bool {
+        supportedVideoTypes.contains { type.conforms(to: $0) }
     }
 
     // MARK: - Importing

@@ -35,6 +35,7 @@
 				<string>com.apple.quicktime-movie</string>
 				<string>com.apple.m4v-video</string>
 				<string>public.mpeg-4</string>
+				<string>public.avi</string>
 			</array>
 		</dict>
 	</array>
