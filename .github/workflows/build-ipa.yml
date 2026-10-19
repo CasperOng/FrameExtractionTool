@@ -307,7 +307,7 @@ jobs:
           - Built with latest Xcode and iOS SDK
           - Swift 5.0 with modern concurrency
           - SwiftUI + AVFoundation architecture
-          - Includes Share Extension for importing videos
+          - Accepts videos from the share sheet and “Open in”
 
           ---
 

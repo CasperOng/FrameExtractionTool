@@ -1,0 +1,94 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: macos-15
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Latest Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: 'latest'
+
+    - name: Show Toolchain
+      run: |
+        xcodebuild -version
+        xcrun simctl list runtimes | grep -i ios || true
+
+    - name: Choose a Simulator
+      id: simulator
+      run: |
+        INFO=$(python3 .github/scripts/pick_simulator.py)
+        UDID=${INFO%% *}
+        NAME=${INFO#* }
+        echo "Using $NAME ($UDID)"
+        echo "udid=${UDID}" >> "$GITHUB_OUTPUT"
+
+    - name: Run Unit Tests
+      run: |
+        set -o pipefail
+        xcodebuild test \
+          -project FrameExtractionTool.xcodeproj \
+          -scheme FrameExtractionTool \
+          -destination "id=${{ steps.simulator.outputs.udid }}" \
+          -only-testing:FrameExtractionToolTests \
+          | tee xcodebuild-test.log
+
+    - name: Upload Logs
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: unit-test-logs-${{ github.run_number }}
+        path: xcodebuild-test.log
+        retention-days: 7
+
+  ui-tests:
+    name: UI Tests
+    runs-on: macos-15
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Latest Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: 'latest'
+
+    - name: Choose a Simulator
+      id: simulator
+      run: |
+        INFO=$(python3 .github/scripts/pick_simulator.py)
+        UDID=${INFO%% *}
+        NAME=${INFO#* }
+        echo "Using $NAME ($UDID)"
+        echo "udid=${UDID}" >> "$GITHUB_OUTPUT"
+
+    - name: Run UI Tests
+      run: |
+        set -o pipefail
+        xcodebuild test \
+          -project FrameExtractionTool.xcodeproj \
+          -scheme FrameExtractionTool \
+          -destination "id=${{ steps.simulator.outputs.udid }}" \
+          -only-testing:FrameExtractionToolUITests/FrameExtractionToolUITests \
+          | tee xcodebuild-ui-test.log
+
+    - name: Upload Logs
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ui-test-logs-${{ github.run_number }}
+        path: xcodebuild-ui-test.log
+        retention-days: 7
