@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Partial Info.plist.
+
+	  Xcode generates the rest of this bundle's Info.plist from the target's
+	  INFOPLIST_KEY_* build settings (display name, usage descriptions,
+	  orientations, …) and merges those keys with the ones below. Only keys that
+	  have no build-setting equivalent belong in this file.
+	-->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<!--
+			  Declaring the movie type is what lets people hand a video to this app
+			  from another app: "Open in Frame Extraction Tool" in Files and Photos,
+			  AirDrop, and the apps row of the share sheet.
+
+			  LSHandlerRank is deliberate: the app is not the owner of movie files,
+			  it only offers to open them, so it must not take over as the default
+			  handler for movies on the device.
+			-->
+			<key>CFBundleTypeName</key>
+			<string>Video</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.movie</string>
+				<string>public.video</string>
+				<string>com.apple.quicktime-movie</string>
+				<string>com.apple.m4v-video</string>
+				<string>public.mpeg-4</string>
+			</array>
+		</dict>
+	</array>
+	<!--
+	  The app copies incoming videos into its own container before decoding them
+	  (frame extraction needs a stable file that stays readable for the whole
+	  editing session), so it does not open documents in place.
+	-->
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<false/>
+	<!-- Custom scheme, so Shortcuts, automations and links can hand over a video. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>caspernyong.FrameExtractionTool</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>frameextractor</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>
