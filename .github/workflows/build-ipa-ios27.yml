@@ -29,6 +29,9 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
+      with:
+        # The build number is the commit count; a shallow clone reports 1.
+        fetch-depth: 0
 
     - name: Setup Latest Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -189,6 +192,9 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
+      with:
+        # The build number is the commit count; a shallow clone reports 1.
+        fetch-depth: 0
 
     - name: Setup Latest Xcode
       uses: maxim-lobanov/setup-xcode@v1
