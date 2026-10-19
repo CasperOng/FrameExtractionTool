@@ -115,6 +115,15 @@ If you have an Apple Developer Program membership:
 3. Configure code signing with your developer certificate
 4. Build and distribute as needed
 
+### Option 4: Feather / AltStore Source
+Every build of `main` is published as an unsigned IPA, and a separate repository turns it into a sideloading source:
+
+1. Open [Feather](https://github.com/khcrysalis/Feather) → **Sources** → **+**
+2. Add `https://raw.githubusercontent.com/CasperOng/frame-extraction-tool-feather/main/apps.json`
+3. Install **Frame Extractor** and let Feather sign it with your own certificate
+
+The feed updates itself from the newest build, so this is the quickest way to run the current code on a device. See [frame-extraction-tool-feather](https://github.com/CasperOng/frame-extraction-tool-feather) for details.
+
 ## How to Use
 
 1. **Launch the app** and complete the onboarding tutorial
@@ -152,6 +161,11 @@ This project includes two CI/CD platforms for automated building and testing:
 - **Output**: Unsigned IPA files for development and testing
 - **iOS SDK**: Automatically detects and uses latest iOS SDK (iOS 26+)
 - **Configuration**: `.github/workflows/build-ipa.yml`
+
+### GitHub Actions: Tests
+- **Unit tests** (`FrameExtractionToolTests`) and **UI smoke tests** (`FrameExtractionToolUITests`)
+- **Configuration**: `.github/workflows/tests.yml`
+- Runs on a simulator chosen at runtime, so it works on any runner image
 
 ### CodeMagic CI/CD
 - **ios-unsigned-workflow**: Standard unsigned builds for development

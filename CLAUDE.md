@@ -14,9 +14,11 @@ The app is developed without an Apple Developer Program membership, so builds ar
 
 | Workflow | What it does |
 | --- | --- |
-| `.github/workflows/build-ipa.yml` | Unsigned IPA on push to `main`/`develop`, PRs, tags; creates pre-releases for `v*` tags |
+| `.github/workflows/build-ipa.yml` | Unsigned IPA on push to `main`/`develop`, PRs, tags; creates pre-releases for `v*` tags and refreshes the rolling `latest` release that the Feather feed reads |
 | `.github/workflows/build-ipa-ios27.yml` | Same build against the newest iOS SDK |
 | `.github/workflows/tests.yml` | Unit tests (`FrameExtractionToolTests`) and UI smoke tests (`FrameExtractionToolUITests`) on a simulator picked at runtime |
+
+Sideloading: `CasperOng/frame-extraction-tool-feather` is a public Feather source that commits the newest unsigned IPA and its `apps.json`. Its `refresh.yml` pulls the IPA from the `latest` release every six hours; a `FEED_DISPATCH_TOKEN` secret in this repository makes it immediate.
 
 Useful commands:
 
