@@ -7,132 +7,121 @@
 
 import SwiftUI
 
+/// The first-run tour. Also reachable from Settings, so it always offers a way out.
 struct OnboardingView: View {
-    @Binding var showOnboarding: Bool
-    @State private var currentPage = 0
-    
-    private let pages = [
-        OnboardingPage(
-            icon: "video.fill",
-            title: "Choose Your Video",
-            description: "Select any video from your photo library to get started",
-            color: .blue
+
+    let onFinish: () -> Void
+
+    @State private var pageIndex = 0
+
+    private struct Page: Identifiable {
+        let id = UUID()
+        let symbol: String
+        let title: String
+        let description: String
+    }
+
+    private let pages: [Page] = [
+        Page(
+            symbol: "photo.on.rectangle.angled",
+            title: "Choose a Video",
+            description: "Pick any video from your photo library."
         ),
-        OnboardingPage(
-            icon: "plus.circle.fill",
-            title: "Mark Perfect Moments",
-            description: "Play your video and tap the plus button to mark frames you want to extract",
-            color: .green
+        Page(
+            symbol: "square.and.arrow.down.on.square",
+            title: "Or Share One In",
+            description: "Share a video to Frame Extractor from Photos, Files or any other app — it opens ready to use."
         ),
-        OnboardingPage(
-            icon: "photo.stack",
-            title: "Extract & Save",
-            description: "Save all your marked frames to your photo library in original quality",
-            color: .purple
-        )
+        Page(
+            symbol: "plus.circle",
+            title: "Mark the Moments",
+            description: "Play the video and tap the plus button to mark the frames you want."
+        ),
+        Page(
+            symbol: "photo.stack",
+            title: "Extract and Save",
+            description: "Save every marked frame to your photo library at the video’s own resolution."
+        ),
     ]
-    
+
+    private var isLastPage: Bool { pageIndex == pages.count - 1 }
+
     var body: some View {
-        VStack(spacing: 0) {
-            // Page Content
-            TabView(selection: $currentPage) {
-                ForEach(0..<pages.count, id: \.self) { index in
-                    OnboardingPageView(page: pages[index])
-                        .tag(index)
-                }
-            }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-            .frame(maxHeight: .infinity)
-            
-            // Bottom Controls
-            VStack(spacing: 20) {
-                // Page Indicator
-                HStack(spacing: 8) {
-                    ForEach(0..<pages.count, id: \.self) { index in
-                        Circle()
-                            .fill(currentPage == index ? pages[currentPage].color : Color.gray.opacity(0.3))
-                            .frame(width: 10, height: 10)
-                            .animation(.easeInOut, value: currentPage)
+        NavigationStack {
+            VStack(spacing: AppTheme.Spacing.xl) {
+                TabView(selection: $pageIndex) {
+                    ForEach(Array(pages.enumerated()), id: \.element.id) { index, page in
+                        pageView(page)
+                            .tag(index)
                     }
                 }
-                
-                // Action Button
+                .tabViewStyle(.page)
+                .indexViewStyle(.page(backgroundDisplayMode: .always))
+
                 Button {
-                    if currentPage < pages.count - 1 {
-                        withAnimation(.easeInOut) {
-                            currentPage += 1
-                        }
+                    if isLastPage {
+                        onFinish()
                     } else {
-                        showOnboarding = false
+                        withAnimation(.easeInOut) { pageIndex += 1 }
                     }
                 } label: {
-                    HStack {
-                        Text(currentPage < pages.count - 1 ? "Next" : "Get Started")
-                        if currentPage < pages.count - 1 {
-                            Image(systemName: "arrow.right")
-                        }
-                    }
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
+                    Text(isLastPage ? "Get Started" : "Continue")
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .tint(pages[currentPage].color)
-                .animation(.easeInOut, value: currentPage)
-                
-                // Skip Button
-                if currentPage < pages.count - 1 {
-                    Button("Skip") {
-                        showOnboarding = false
-                    }
-                    .foregroundStyle(.secondary)
+                .padding(.horizontal, AppTheme.Spacing.xl)
+                .padding(.bottom, AppTheme.Spacing.sm)
+
+                if !isLastPage {
+                    Button("Skip") { onFinish() }
+                        .font(AppTheme.Typography.subheadline)
+                        .padding(.bottom, AppTheme.Spacing.lg)
                 }
             }
-            .padding()
+            .navigationTitle("Frame Extractor")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        onFinish()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel("Close tutorial")
+                }
+            }
         }
-        .background(.regularMaterial)
     }
-}
 
-struct OnboardingPage {
-    let icon: String
-    let title: String
-    let description: String
-    let color: Color
-}
-
-struct OnboardingPageView: View {
-    let page: OnboardingPage
-    
-    var body: some View {
-        VStack(spacing: 30) {
+    private func pageView(_ page: Page) -> some View {
+        VStack(spacing: AppTheme.Spacing.xl) {
             Spacer()
-            
-            // Icon
-            Image(systemName: page.icon)
-                .font(.system(size: 80))
-                .foregroundStyle(page.color.gradient)
-            
-            // Content
-            VStack(spacing: 16) {
+            Image(systemName: page.symbol)
+                .font(.system(.largeTitle, design: .rounded))
+                .imageScale(.large)
+                .fontWeight(.light)
+                .foregroundStyle(.tint)
+                .symbolRenderingMode(.hierarchical)
+                .accessibilityHidden(true)
+
+            VStack(spacing: AppTheme.Spacing.sm) {
                 Text(page.title)
-                    .font(.title)
-                    .fontWeight(.bold)
+                    .font(AppTheme.Typography.title2)
                     .multilineTextAlignment(.center)
-                
+
                 Text(page.description)
-                    .font(.body)
+                    .font(AppTheme.Typography.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .lineLimit(nil)
             }
-            .padding(.horizontal)
-            
+            .padding(.horizontal, AppTheme.Spacing.xl)
             Spacer()
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
 #Preview {
-    OnboardingView(showOnboarding: .constant(true))
+    OnboardingView {}
 }

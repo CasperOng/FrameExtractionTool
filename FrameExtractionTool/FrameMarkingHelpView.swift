@@ -7,133 +7,100 @@
 
 import SwiftUI
 
+/// Short instructions, shown from the player while a video is open.
 struct FrameMarkingHelpView: View {
+
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Instructions
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("How to Mark Frames")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        InstructionRow(
-                            icon: "play.circle",
-                            title: "Play & Pause",
-                            description: "Tap anywhere on the video or use the play button to control playback"
-                        )
-                        
-                        InstructionRow(
-                            icon: "plus.circle.fill",
-                            title: "Mark Frame",
-                            description: "Tap the blue plus button to mark the current frame for extraction"
-                        )
-                        
-                        InstructionRow(
-                            icon: "timeline.selection",
-                            title: "Navigate Timeline",
-                            description: "Drag on the timeline or tap marked frames to jump to specific moments"
-                        )
-                        
-                        InstructionRow(
-                            icon: "trash.circle",
-                            title: "Remove Marks",
-                            description: "Tap any blue marker on the timeline to remove that frame mark"
-                        )
-                        
-                        InstructionRow(
-                            icon: "square.and.arrow.down",
-                            title: "Extract & Save",
-                            description: "Tap 'Extract' to save all marked frames to your photo library"
-                        )
-                    }
-                    
-                    Divider()
-                        .padding(.vertical)
-                    
-                    // Tips
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Tips for Best Results")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        TipRow(
-                            icon: "lightbulb",
-                            tip: "Pause at key moments for precise frame selection"
-                        )
-                        
-                        TipRow(
-                            icon: "eye",
-                            tip: "Use seek buttons to navigate frame by frame"
-                        )
-                        
-                        TipRow(
-                            icon: "photo",
-                            tip: "Frames are saved at original video quality"
-                        )
-                        
-                        TipRow(
-                            icon: "clock",
-                            tip: "Frame timestamps help you organize your captures"
-                        )
-                    }
+            List {
+                Section("Marking Frames") {
+                    HelpRow(
+                        symbol: "play.fill",
+                        title: "Play and pause",
+                        detail: "Tap the video or the play button. The 10-second buttons jump back and forth."
+                    )
+                    HelpRow(
+                        symbol: "plus",
+                        title: "Mark a frame",
+                        detail: "Tap the blue plus button to add the frame on screen to the list."
+                    )
+                    HelpRow(
+                        symbol: "flag.fill",
+                        title: "Revisit a mark",
+                        detail: "Tap a flag on the timeline, or a time at the bottom, to jump to that frame."
+                    )
+                    HelpRow(
+                        symbol: "trash",
+                        title: "Remove a mark",
+                        detail: "Touch and hold a flag, or a time at the bottom, and choose Remove Mark."
+                    )
                 }
-                .padding()
+
+                Section("Extracting") {
+                    HelpRow(
+                        symbol: "square.and.arrow.down",
+                        title: "Save the frames",
+                        detail: "Choose Extract to write every marked frame to your photo library at the video’s own resolution."
+                    )
+                    HelpRow(
+                        symbol: "slider.horizontal.3",
+                        title: "Playback options",
+                        detail: "Change the speed or the size of the video from the toolbar menu."
+                    )
+                }
+
+                Section("Tips") {
+                    HelpRow(
+                        symbol: "pause.circle",
+                        title: "Pause before marking",
+                        detail: "Frames are taken at the exact position of the playhead."
+                    )
+                    HelpRow(
+                        symbol: "folder",
+                        title: "Keep frames together",
+                        detail: "Turn on Save to an Album in Settings to collect extracted frames in one place."
+                    )
+                }
             }
-            .navigationTitle("Help")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("How to Use")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
                 }
             }
         }
     }
 }
 
-struct InstructionRow: View {
-    let icon: String
+private struct HelpRow: View {
+    let symbol: String
     let title: String
-    let description: String
-    
+    let detail: String
+
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(.blue)
-                .frame(width: 30)
-            
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .firstTextBaseline, spacing: AppTheme.Spacing.lg) {
+            Image(systemName: symbol)
+                .font(AppTheme.Typography.body.weight(.semibold))
+                .foregroundStyle(.tint)
+                .frame(width: 24)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.xs) {
                 Text(title)
-                    .font(.headline)
-                
-                Text(description)
-                    .font(.subheadline)
+                    .font(AppTheme.Typography.headline)
+                Text(detail)
+                    .font(AppTheme.Typography.subheadline)
                     .foregroundStyle(.secondary)
             }
         }
+        .padding(.vertical, AppTheme.Spacing.xs)
+        .accessibilityElement(children: .combine)
     }
 }
 
-struct TipRow: View {
-    let icon: String
-    let tip: String
-    
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .font(.subheadline)
-                .foregroundStyle(.orange)
-                .frame(width: 20)
-            
-            Text(tip)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-    }
+#Preview {
+    FrameMarkingHelpView()
 }

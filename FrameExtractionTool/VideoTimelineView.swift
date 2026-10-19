@@ -5,146 +5,175 @@
 //  Created by Casper Ong on 14/8/2025.
 //
 
-import SwiftUI
 import AVFoundation
+import SwiftUI
 
+/// Scrubbing bar plus the frames marked so far.
 struct VideoTimelineView: View {
+
     let currentTime: CMTime
     let duration: CMTime
     let markedFrames: [MarkedFrame]
     let onSeek: (CMTime) -> Void
-    let onRemoveFrame: (UUID) -> Void
-    
-    @State private var isDragging = false
-    
+    let onRemoveMark: (UUID) -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isScrubbing = false
+
     private var progress: Double {
-        guard duration.seconds > 0 else { return 0 }
-        return currentTime.seconds / duration.seconds
+        let seconds = duration.seconds
+        guard seconds.isFinite, seconds > 0 else { return 0 }
+        return min(max(currentTime.seconds / seconds, 0), 1)
     }
-    
+
     var body: some View {
-        VStack(spacing: 12) {
-            // Time labels
+        VStack(spacing: AppTheme.Spacing.md) {
             HStack {
-                Text(timeString(from: currentTime))
-                    .font(.caption)
-                    .foregroundColor(.white)
+                Text(Self.shortTime(currentTime.seconds))
                     .monospacedDigit()
-                
+                    .accessibilityLabel("Current position \(MarkedFrame.timeString(fromSeconds: currentTime.seconds))")
                 Spacer()
-                
-                Text(timeString(from: duration))
-                    .font(.caption)
-                    .foregroundColor(.white)
+                Text(Self.shortTime(duration.seconds))
                     .monospacedDigit()
+                    .accessibilityLabel("Duration \(MarkedFrame.timeString(fromSeconds: duration.seconds))")
             }
-            .padding(.horizontal, 4)
-            
-            // Timeline
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    // Background track
-                    Rectangle()
-                        .fill(Color.white.opacity(0.3))
-                        .frame(height: 4)
-                        .cornerRadius(2)
-                    
-                    // Progress track
-                    Rectangle()
-                        .fill(Color.white)
-                        .frame(width: geometry.size.width * progress, height: 4)
-                        .cornerRadius(2)
-                    
-                    // Marked frames indicators
-                    ForEach(markedFrames) { frame in
-                        let frameProgress = frame.timeStamp.seconds / duration.seconds
-                        let xPosition = geometry.size.width * frameProgress
-                        
-                        Button {
-                            onRemoveFrame(frame.id)
-                        } label: {
-                            VStack(spacing: 2) {
-                                Circle()
-                                    .fill(.blue)
-                                    .frame(width: 12, height: 12)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(.white, lineWidth: 2)
-                                    )
-                                
-                                Rectangle()
-                                    .fill(.blue)
-                                    .frame(width: 2, height: 8)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .position(x: xPosition, y: geometry.size.height / 2)
-                    }
-                    
-                    // Current time indicator
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 16, height: 16)
-                        .shadow(radius: 2)
-                        .position(x: geometry.size.width * progress, y: geometry.size.height / 2)
-                }
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            isDragging = true
-                            let progress = min(max(value.location.x / geometry.size.width, 0), 1)
-                            let newTime = CMTimeMultiplyByFloat64(duration, multiplier: Float64(progress))
-                            onSeek(newTime)
-                        }
-                        .onEnded { _ in
-                            isDragging = false
-                        }
-                )
-                .onTapGesture { location in
-                    let progress = min(max(location.x / geometry.size.width, 0), 1)
-                    let newTime = CMTimeMultiplyByFloat64(duration, multiplier: Float64(progress))
-                    onSeek(newTime)
-                }
-            }
-            .frame(height: 44)
-            .padding(.horizontal, 4)
-            
-            // Marked frames list
+            .font(AppTheme.Typography.caption)
+            .foregroundStyle(.secondary)
+
+            track
+
             if !markedFrames.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(markedFrames) { frame in
-                            Button {
-                                onSeek(frame.timeStamp)
-                            } label: {
-                                VStack(spacing: 4) {
-                                    Image(systemName: "photo.fill")
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                    
-                                    Text(frame.timeString)
-                                        .font(.caption2)
-                                        .foregroundColor(.white)
-                                        .monospacedDigit()
-                                }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(8)
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                }
+                markedFrameStrip
             }
         }
     }
-    
-    private func timeString(from time: CMTime) -> String {
-        let seconds = Int(time.seconds)
-        let minutes = seconds / 60
-        let remainingSeconds = seconds % 60
-        return String(format: "%02d:%02d", minutes, remainingSeconds)
+
+    // MARK: - Track
+
+    private var track: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let height = geometry.size.height
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(.quaternary)
+                    .frame(height: 6)
+
+                Capsule()
+                    .fill(.tint)
+                    .frame(width: width * progress, height: 6)
+
+                ForEach(markedFrames) { frame in
+                    marker(for: frame, in: CGSize(width: width, height: height))
+                }
+
+                Circle()
+                    .fill(.white)
+                    .frame(width: isScrubbing ? 22 : 16, height: isScrubbing ? 22 : 16)
+                    .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
+                    .position(x: width * progress, y: height / 2)
+            }
+            .contentShape(Rectangle())
+            // A zero-distance drag also covers taps, so scrubbing starts on touch down.
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        isScrubbing = true
+                        seek(toFraction: value.location.x / width)
+                    }
+                    .onEnded { _ in isScrubbing = false }
+            )
+            .animation(AppTheme.Motion.quick(reduceMotion), value: isScrubbing)
+        }
+        .frame(height: AppTheme.minimumHitTarget)
+        .accessibilityElement()
+        .accessibilityLabel("Playback position")
+        .accessibilityValue(MarkedFrame.timeString(fromSeconds: currentTime.seconds))
+        .accessibilityHint("Swipe up or down to move one second at a time")
+        .accessibilityAdjustableAction { direction in
+            let step = 1.0
+            switch direction {
+            case .increment: seek(toFraction: (currentTime.seconds + step) / max(duration.seconds, step))
+            case .decrement: seek(toFraction: (currentTime.seconds - step) / max(duration.seconds, step))
+            @unknown default: break
+            }
+        }
+    }
+
+    private func marker(for frame: MarkedFrame, in size: CGSize) -> some View {
+        let position = duration.seconds > 0 ? frame.seconds / duration.seconds : 0
+        let x = min(max(size.width * position, 0), size.width)
+
+        return Button {
+            onSeek(frame.timeStamp)
+        } label: {
+            Image(systemName: "flag.fill")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.tint)
+                .frame(width: AppTheme.minimumHitTarget, height: AppTheme.minimumHitTarget)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .position(x: x, y: size.height / 2)
+        .accessibilityLabel("Marked frame at \(frame.accessibilityTimeString)")
+        .accessibilityHint("Jumps to this frame")
+        .contextMenu {
+            Button(role: .destructive) {
+                onRemoveMark(frame.id)
+            } label: {
+                Label("Remove Mark", systemImage: "trash")
+            }
+        }
+    }
+
+    // MARK: - Marked frames
+
+    private var markedFrameStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: AppTheme.Spacing.sm) {
+                ForEach(markedFrames) { frame in
+                    Button {
+                        onSeek(frame.timeStamp)
+                    } label: {
+                        Text(frame.timeString)
+                            .font(AppTheme.Typography.caption)
+                            .monospacedDigit()
+                            .padding(.horizontal, AppTheme.Spacing.md)
+                            .padding(.vertical, AppTheme.Spacing.sm)
+                            .background(.quaternary, in: .capsule)
+                    }
+                    .buttonStyle(PressableButtonStyle())
+                    .accessibilityLabel("Marked frame at \(frame.accessibilityTimeString)")
+                    .contextMenu {
+                        Button("Remove Mark", systemImage: "trash", role: .destructive) {
+                            onRemoveMark(frame.id)
+                        }
+                    }
+                }
+            }
+            .padding(.vertical, 2)
+        }
+        .animation(AppTheme.Motion.springy(reduceMotion), value: markedFrames.count)
+    }
+
+    // MARK: - Helpers
+
+    private func seek(toFraction fraction: Double) {
+        guard duration.isNumeric, duration.seconds > 0 else { return }
+        let clamped = min(max(fraction, 0), 1)
+        onSeek(CMTime(seconds: duration.seconds * clamped, preferredTimescale: 600))
+    }
+
+    /// `mm:ss`, or `h:mm:ss` for long videos.
+    private static func shortTime(_ seconds: Double) -> String {
+        guard seconds.isFinite, seconds >= 0 else { return "00:00" }
+        let total = Int(seconds)
+        let hours = total / 3600
+        let minutes = (total / 60) % 60
+        let remainder = total % 60
+        return hours > 0
+            ? String(format: "%d:%02d:%02d", hours, minutes, remainder)
+            : String(format: "%02d:%02d", minutes, remainder)
     }
 }

@@ -5,300 +5,315 @@
 //  Created by Casper Ong on 14/8/2025.
 //
 
-import SwiftUI
 import AVFoundation
+import Observation
 import Photos
-import CoreImage
-import Combine
+import UIKit
 
-@MainActor
-final class VideoManager: ObservableObject {
-    @Published var selectedVideoURL: URL?
-    @Published var markedFrames: [MarkedFrame] = []
-    @Published var extractedFrames: [ExtractedFrame] = []
-    @Published var isExtracting = false
-    @Published var extractionProgress: Double = 0.0
-    
-    private let photoLibrary = PHPhotoLibrary.shared()
-    
-    init() {
-        // Set default haptic feedback preference if not set
-        if UserDefaults.standard.object(forKey: "hapticFeedback") == nil {
-            UserDefaults.standard.set(true, forKey: "hapticFeedback")
-        }
-    }
-    
+/// The app's source of truth: which video is loaded, which frames are marked,
+/// and which frames have been extracted.
+@Observable
+final class VideoManager {
+
+    // MARK: - State
+
+    private(set) var selectedVideoURL: URL?
+    private(set) var markedFrames: [MarkedFrame] = []
+    private(set) var extractedFrames: [ExtractedFrame] = []
+
+    private(set) var isExtracting = false
+    private(set) var extractionProgress: Double = 0
+    /// Number of frames in the run that is currently in progress.
+    private(set) var extractionTotal = 0
+    /// Set when an extraction run ends, so the UI can report what happened.
+    private(set) var lastSummary: ExtractionSummary?
+
+    /// A problem the user needs to know about; setting it presents an alert.
+    var errorMessage: String?
+
+    // MARK: - Video selection
+
     func selectVideo(url: URL) {
+        guard url != selectedVideoURL else { return }
         selectedVideoURL = url
+        markedFrames.removeAll()
     }
 
-    func markFrame(at time: CMTime, player: AVPlayer) {
+    // MARK: - Marking
+
+    func markFrame(at time: CMTime) {
         guard let videoURL = selectedVideoURL else { return }
-        
-        let newFrame = MarkedFrame(
-            id: UUID(),
-            timeStamp: time,
-            videoURL: videoURL
-        )
-        
-        markedFrames.append(newFrame)
-        
-        // Provide haptic feedback if enabled
-        if UserDefaults.standard.bool(forKey: "hapticFeedback") {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            impactFeedback.impactOccurred()
-        }
+        guard time.isNumeric else { return }
+
+        markedFrames.append(MarkedFrame(timeStamp: time, videoURL: videoURL))
+        Haptics.impact(.medium)
     }
-    
-    func unmarkFrame(frameId: UUID) {
-        markedFrames.removeAll { $0.id == frameId }
-        
-        // Provide haptic feedback if enabled
-        if UserDefaults.standard.bool(forKey: "hapticFeedback") {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.impactOccurred()
-        }
+
+    func unmarkFrame(id: UUID) {
+        guard markedFrames.contains(where: { $0.id == id }) else { return }
+        markedFrames.removeAll { $0.id == id }
+        Haptics.impact(.light)
     }
-    
+
     func clearMarkedFrames() {
-        markedFrames.removeAll()
-        
-        // Provide haptic feedback if enabled
-        if UserDefaults.standard.bool(forKey: "hapticFeedback") {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.impactOccurred()
-        }
-    }
-    
-    func deleteExtractedFrame(_ frame: ExtractedFrame) {
-        // Remove from app
-        extractedFrames.removeAll { $0.id == frame.id }
-        
-        // Delete from photo library if we have the asset identifier
-        if let assetIdentifier = frame.photoAssetIdentifier {
-            Task {
-                try? await deleteFromPhotoLibrary(assetIdentifier: assetIdentifier)
-            }
-        }
-        
-        // Provide haptic feedback if enabled
-        if UserDefaults.standard.bool(forKey: "hapticFeedback") {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.impactOccurred()
-        }
-    }
-    
-    func deleteExtractedFrames(_ framesToDelete: [ExtractedFrame]) {
-        let idsToDelete = Set(framesToDelete.map { $0.id })
-        
-        // Remove from app
-        extractedFrames.removeAll { idsToDelete.contains($0.id) }
-        
-        // Delete from photo library
-        Task {
-            for frame in framesToDelete {
-                if let assetIdentifier = frame.photoAssetIdentifier {
-                    try? await deleteFromPhotoLibrary(assetIdentifier: assetIdentifier)
-                }
-            }
-        }
-        
-        // Provide haptic feedback if enabled
-        if UserDefaults.standard.bool(forKey: "hapticFeedback") {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            impactFeedback.impactOccurred()
-        }
-    }
-    
-    func clearAllExtractedFrames() {
-        let framesToDelete = extractedFrames
-        
-        // Remove from app
-        extractedFrames.removeAll()
-        
-        // Delete from photo library
-        Task {
-            for frame in framesToDelete {
-                if let assetIdentifier = frame.photoAssetIdentifier {
-                    try? await deleteFromPhotoLibrary(assetIdentifier: assetIdentifier)
-                }
-            }
-        }
-        
-        // Provide haptic feedback if enabled
-        if UserDefaults.standard.bool(forKey: "hapticFeedback") {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
-            impactFeedback.impactOccurred()
-        }
-    }
-    
-    func extractAllMarkedFrames() async throws {
         guard !markedFrames.isEmpty else { return }
-        
-        isExtracting = true
-        extractionProgress = 0.0
-        
-        let asset = AVAsset(url: selectedVideoURL!)
-        let imageGenerator = AVAssetImageGenerator(asset: asset)
-        imageGenerator.appliesPreferredTrackTransform = true
-        imageGenerator.requestedTimeToleranceAfter = .zero
-        imageGenerator.requestedTimeToleranceBefore = .zero
-        
-        // Set maximum size to maintain original quality
-        let tracks = try await asset.loadTracks(withMediaType: .video)
-        if let track = tracks.first {
-            let naturalSize = try await track.load(.naturalSize)
-            imageGenerator.maximumSize = naturalSize
-        }
-        
-        for (index, markedFrame) in markedFrames.enumerated() {
-            do {
-                let cgImage = try await imageGenerator.image(at: markedFrame.timeStamp).image
-                let uiImage = UIImage(cgImage: cgImage)
-                
-                // Save to Photos and get asset identifier
-                let assetIdentifier = try await saveImageToPhotos(uiImage)
-                
-                // Add to extracted frames list
-                let extractedFrame = ExtractedFrame(
-                    id: UUID(),
-                    originalMarkedFrame: markedFrame,
-                    image: uiImage,
-                    extractionDate: Date(),
-                    photoAssetIdentifier: assetIdentifier
-                )
-                
-                extractedFrames.append(extractedFrame)
-                
-                // Update progress
-                extractionProgress = Double(index + 1) / Double(markedFrames.count)
-                
-            } catch {
-                print("Failed to extract frame: \(error)")
-            }
-        }
-        
-        // Clear marked frames after successful extraction
         markedFrames.removeAll()
-        isExtracting = false
-        extractionProgress = 0.0
-        
-        // Success haptic feedback if enabled
-        if UserDefaults.standard.bool(forKey: "hapticFeedback") {
-            let notificationFeedback = UINotificationFeedbackGenerator()
-            notificationFeedback.notificationOccurred(.success)
-        }
+        Haptics.impact(.light)
     }
-    
-    private func saveImageToPhotos(_ image: UIImage) async throws -> String? {
-        let useCustomAlbum = UserDefaults.standard.bool(forKey: "useCustomAlbum")
-        let customAlbumName = UserDefaults.standard.string(forKey: "customAlbumName") ?? "Frame Extractor"
-        
-        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<String?, Error>) in
-            PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
-                guard status == .authorized else {
-                    continuation.resume(throwing: PhotoLibraryError.notAuthorized)
-                    return
+
+    // MARK: - Extraction
+
+    /// Extracts every marked frame, saves it to the photo library and keeps a
+    /// thumbnail in the library.
+    ///
+    /// Safe to cancel: frames already saved stay saved, and the run ends with a
+    /// summary of what was written.
+    func extractMarkedFrames() async {
+        guard let videoURL = selectedVideoURL else {
+            errorMessage = ExtractionError.noVideoSelected.localizedDescription
+            return
+        }
+        guard !markedFrames.isEmpty else {
+            errorMessage = ExtractionError.noFramesMarked.localizedDescription
+            return
+        }
+
+        let access = await requestPhotoAccess()
+        guard access.canAdd else {
+            errorMessage = ExtractionError.photoAccessDenied.localizedDescription
+            return
+        }
+
+        isExtracting = true
+        extractionProgress = 0
+        extractionTotal = markedFrames.count
+        lastSummary = nil
+        defer {
+            isExtracting = false
+            extractionProgress = 0
+            extractionTotal = 0
+        }
+
+        // Saving into an album needs read-write access; without it, frames still
+        // go to the library and the summary explains the difference.
+        let wantsAlbum = AppSettings.usesCustomAlbum
+        let albumName = access.canReadWrite && wantsAlbum ? AppSettings.albumName : nil
+        var note: String?
+        if wantsAlbum && !access.canReadWrite {
+            note = ExtractionError.photoAccessDeniedForAlbum.localizedDescription
+        }
+
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: videoURL))
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+
+        let frames = markedFrames
+        var savedIDs: Set<UUID> = []
+        var failed = 0
+        var firstFailure: String?
+
+        for (index, frame) in frames.enumerated() {
+            if Task.isCancelled { break }
+
+            do {
+                let image = UIImage(cgImage: try await generator.image(at: frame.timeStamp).image)
+                let identifier: String?
+                do {
+                    identifier = try await saveImageToPhotos(image, albumName: albumName)
+                } catch {
+                    // Writing to an album needs read-write access. Save to the
+                    // library instead of losing the frame, and say why.
+                    guard albumName != nil else { throw error }
+                    identifier = try await saveImageToPhotos(image, albumName: nil)
+                    note = note ?? ExtractionError.photoAccessDeniedForAlbum.localizedDescription
                 }
-                
-                var assetIdentifier: String?
-                
-                PHPhotoLibrary.shared().performChanges {
-                    let creationRequest = PHAssetChangeRequest.creationRequestForAsset(from: image)
-                    assetIdentifier = creationRequest.placeholderForCreatedAsset?.localIdentifier
-                    
-                    if useCustomAlbum {
-                        // Also add to custom album
-                        self.addToCustomAlbumHelper(creationRequest: creationRequest, albumName: customAlbumName)
-                    }
-                } completionHandler: { success, error in
-                    if success {
-                        continuation.resume(returning: assetIdentifier)
-                    } else {
-                        continuation.resume(throwing: error ?? PhotoLibraryError.saveFailed)
-                    }
+                extractedFrames.append(ExtractedFrame(
+                    originalMarkedFrame: frame,
+                    thumbnail: image.thumbnail(maxDimension: ExtractedFrame.thumbnailMaxDimension),
+                    photoAssetIdentifier: identifier
+                ))
+                savedIDs.insert(frame.id)
+            } catch {
+                // A cancellation surfaces as an error here; it is not a failure.
+                if Task.isCancelled { break }
+                failed += 1
+                firstFailure = firstFailure ?? error.localizedDescription
+                print("Failed to extract frame at \(frame.timeString): \(error)")
+            }
+
+            extractionProgress = Double(index + 1) / Double(frames.count)
+        }
+
+        if failed > 0 && note == nil {
+            note = firstFailure
+        }
+        lastSummary = ExtractionSummary(savedCount: savedIDs.count, failedCount: failed, note: note)
+
+        if !savedIDs.isEmpty {
+            // Only the marks that made it are cleared, so an interrupted run
+            // can be finished by extracting again.
+            markedFrames.removeAll { savedIDs.contains($0.id) }
+            Haptics.notify(failed == 0 ? .success : .warning)
+        }
+    }
+
+    // MARK: - Library
+
+    /// Removes frames from the app and from the photo library.
+    func deleteFrames(_ frames: [ExtractedFrame]) {
+        guard !frames.isEmpty else { return }
+        let ids = Set(frames.map(\.id))
+        extractedFrames.removeAll { ids.contains($0.id) }
+        Haptics.impact(.medium)
+
+        let identifiers = frames.compactMap(\.photoAssetIdentifier)
+        guard !identifiers.isEmpty else { return }
+
+        Task {
+            let access = await requestPhotoAccess()
+            guard access.canReadWrite else {
+                errorMessage = ExtractionError.photoAccessDenied.localizedDescription
+                return
+            }
+            do {
+                try await deleteAssets(identifiers: identifiers)
+            } catch {
+                errorMessage = "Those frames were removed from the app, but Photos could not delete the copies: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    func deleteFrame(_ frame: ExtractedFrame) {
+        deleteFrames([frame])
+    }
+
+    /// Fetches the full-resolution image again, on demand.
+    func fullImage(for frame: ExtractedFrame) async -> UIImage? {
+        guard let identifier = frame.photoAssetIdentifier else { return nil }
+        let assets = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil)
+        guard let asset = assets.firstObject else { return nil }
+
+        return await withCheckedContinuation { continuation in
+            let options = PHImageRequestOptions()
+            options.isNetworkAccessAllowed = true
+            options.deliveryMode = .highQualityFormat
+            options.resizeMode = .none
+            // `requestImageDataAndOrientation` reports exactly once, unlike
+            // `requestImage`, which can call back again with a better result.
+            PHImageManager.default().requestImageDataAndOrientation(for: asset, options: options) { data, _, _, _ in
+                continuation.resume(returning: data.flatMap(UIImage.init(data:)))
+            }
+        }
+    }
+
+    // MARK: - Photo library
+
+    private struct PhotoAccess {
+        /// Enough access to add new assets.
+        var canAdd: Bool
+        /// Full access, needed to work with albums and to delete.
+        var canReadWrite: Bool
+    }
+
+    private func requestPhotoAccess() async -> PhotoAccess {
+        let readWrite = await requestAuthorization(for: .readWrite)
+        var access = PhotoAccess(
+            canAdd: readWrite == .authorized || readWrite == .limited,
+            canReadWrite: readWrite == .authorized || readWrite == .limited
+        )
+        if !access.canAdd {
+            let addOnly = await requestAuthorization(for: .addOnly)
+            access.canAdd = addOnly == .authorized || addOnly == .limited
+        }
+        return access
+    }
+
+    private func requestAuthorization(for level: PHAccessLevel) async -> PHAuthorizationStatus {
+        let current = PHPhotoLibrary.authorizationStatus(for: level)
+        guard current == .notDetermined else { return current }
+        return await withCheckedContinuation { continuation in
+            PHPhotoLibrary.requestAuthorization(for: level) { status in
+                continuation.resume(returning: status)
+            }
+        }
+    }
+
+    private func saveImageToPhotos(_ image: UIImage, albumName: String?) async throws -> String? {
+        // Fetch the album before the change block: photo library reads belong
+        // outside `performChanges`.
+        let album = albumName.flatMap(existingAlbum(named:))
+
+        return try await withCheckedThrowingContinuation { continuation in
+            var identifier: String?
+            PHPhotoLibrary.shared().performChanges {
+                let creation = PHAssetChangeRequest.creationRequestForAsset(from: image)
+                identifier = creation.placeholderForCreatedAsset?.localIdentifier
+
+                guard let placeholder = creation.placeholderForCreatedAsset, let albumName else { return }
+                if let album {
+                    PHAssetCollectionChangeRequest(for: album)?.addAssets([placeholder] as NSArray)
+                } else {
+                    PHAssetCollectionChangeRequest
+                        .creationRequestForAssetCollection(withTitle: albumName)
+                        .addAssets([placeholder] as NSArray)
+                }
+            } completionHandler: { success, error in
+                if success {
+                    continuation.resume(returning: identifier)
+                } else {
+                    continuation.resume(throwing: error ?? PhotoLibraryError.saveFailed)
                 }
             }
         }
     }
-    
-    private func addToCustomAlbumHelper(creationRequest: PHAssetChangeRequest, albumName: String) {
-        // First, try to find existing album
-        let fetchOptions = PHFetchOptions()
-        fetchOptions.predicate = NSPredicate(format: "title = %@", albumName)
-        let collection = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: fetchOptions)
-        
-        if let album = collection.firstObject {
-            // Album exists, add asset to it
-            if let placeholder = creationRequest.placeholderForCreatedAsset {
-                let albumChangeRequest = PHAssetCollectionChangeRequest(for: album)
-                albumChangeRequest?.addAssets([placeholder] as NSArray)
-            }
-        } else {
-            // Create new album and add asset
-            let albumCreationRequest = PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle: albumName)
-            if let placeholder = creationRequest.placeholderForCreatedAsset {
-                albumCreationRequest.addAssets([placeholder] as NSArray)
-            }
-        }
+
+    private func existingAlbum(named title: String) -> PHAssetCollection? {
+        let options = PHFetchOptions()
+        options.predicate = NSPredicate(format: "title = %@", title)
+        return PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: options).firstObject
     }
-    
-    private func deleteFromPhotoLibrary(assetIdentifier: String) async throws {
+
+    private func deleteAssets(identifiers: [String]) async throws {
+        let assets = PHAsset.fetchAssets(withLocalIdentifiers: identifiers, options: nil)
+        guard assets.count > 0 else { return }
+
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
-                guard status == .authorized else {
-                    continuation.resume(throwing: PhotoLibraryError.notAuthorized)
-                    return
-                }
-                
-                let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetIdentifier], options: nil)
-                guard let asset = fetchResult.firstObject else {
-                    continuation.resume() // Asset already deleted or not found
-                    return
-                }
-                
-                PHPhotoLibrary.shared().performChanges {
-                    PHAssetChangeRequest.deleteAssets([asset] as NSArray)
-                } completionHandler: { success, error in
-                    if success {
-                        continuation.resume()
-                    } else {
-                        continuation.resume(throwing: error ?? PhotoLibraryError.saveFailed)
-                    }
+            PHPhotoLibrary.shared().performChanges {
+                PHAssetChangeRequest.deleteAssets(assets)
+            } completionHandler: { success, error in
+                if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: error ?? PhotoLibraryError.deleteFailed)
                 }
             }
         }
     }
 }
 
-struct MarkedFrame: Identifiable, Equatable {
-    let id: UUID
-    let timeStamp: CMTime
-    let videoURL: URL
-    
-    var timeString: String {
-        let seconds = CMTimeGetSeconds(timeStamp)
-        let minutes = Int(seconds) / 60
-        let remainingSeconds = Int(seconds) % 60
-        let milliseconds = Int((seconds.truncatingRemainder(dividingBy: 1)) * 100)
-        return String(format: "%02d:%02d.%02d", minutes, remainingSeconds, milliseconds)
-    }
-}
-
-struct ExtractedFrame: Identifiable {
-    let id: UUID
-    let originalMarkedFrame: MarkedFrame
-    let image: UIImage
-    let extractionDate: Date
-    let photoAssetIdentifier: String? // Store the asset identifier for deletion
-    
-    var imageURL: String {
-        // For preview purposes - in a real app you might save thumbnails
-        return "placeholder"
-    }
-}
-
-enum PhotoLibraryError: Error {
+enum PhotoLibraryError: Error, LocalizedError {
     case notAuthorized
     case saveFailed
+    case deleteFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .notAuthorized: return "Frame Extractor does not have permission to use the photo library."
+        case .saveFailed: return "The frame could not be saved to the photo library."
+        case .deleteFailed: return "The frame could not be deleted from the photo library."
+        }
+    }
+}
+
+private extension UIImage {
+    /// A small copy for the library grid, so a long session does not keep
+    /// full-resolution stills in memory.
+    func thumbnail(maxDimension: CGFloat) -> UIImage {
+        let longest = max(size.width, size.height)
+        guard longest > maxDimension, longest > 0 else { return self }
+        let scale = maxDimension / longest
+        let target = CGSize(width: size.width * scale, height: size.height * scale)
+        return preparingThumbnail(of: target) ?? self
+    }
 }

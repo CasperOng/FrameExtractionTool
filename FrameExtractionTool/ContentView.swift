@@ -3,239 +3,257 @@
 //  FrameExtractionTool
 //
 //  Created by Casper Ong on 14/8/2025.
-//  Redesigned with Liquid Glass by Claude on 11/6/2026.
 //
 
+import PhotosUI
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var videoManager = VideoManager()
-    @State private var showingVideoPicker = false
-    @State private var showingVideoPlayer = false
-    @State private var showingFrameLibrary = false
-    @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "hasSeenOnboarding")
-    @State private var showingSettings = false
+
+    @Environment(VideoManager.self) private var videoManager
+    @Environment(IncomingVideoHandler.self) private var incoming
+
+    private enum Route: Hashable {
+        case library
+        case settings
+    }
+
+    @State private var path: [Route] = []
+    @State private var pickedVideo: PhotosPickerItem?
+    @State private var isChoosingVideo = false
+    @State private var isShowingPlayer = false
+    @State private var isImportingPick = false
+    @State private var isShowingTutorial = !UserDefaults.standard.bool(forKey: AppSettings.Key.hasSeenOnboarding)
+    /// A hand-off that arrived while the tutorial was on screen.
+    @State private var videoAwaitingTutorialDismissal: URL?
 
     var body: some View {
-        ZStack {
-            // Clean background
-            Color(.systemBackground)
-                .ignoresSafeArea()
-
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Header Section
-                    VStack(spacing: 12) {
-                        // App Icon
-                        Image(systemName: "play.rectangle.on.rectangle.fill")
-                            .font(.system(size: 56, weight: .semibold))
-                            .foregroundStyle(.blue)
-                            .symbolEffect(.bounce, value: showingVideoPlayer)
-
-                        VStack(spacing: 4) {
-                            Text("Frame Extractor")
-                                .font(.system(size: 32, weight: .bold, design: .rounded))
-                                .foregroundStyle(.primary)
-
-                            Text("Extract frames from videos with precision")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
+        NavigationStack(path: $path) {
+            content
+                .navigationTitle("Frame Extractor")
+                .navigationDestination(for: Route.self) { route in
+                    switch route {
+                    case .library: FrameLibraryView()
+                    case .settings: SettingsView()
                     }
-                    .padding(.vertical, 32)
-
-                    // Main Actions Card
-                    VStack(spacing: 12) {
-                        // Primary Action
+                }
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
                         Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                showingVideoPicker = true
-                            }
+                            path.append(.settings)
                         } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "photo.on.rectangle")
-                                    .font(.system(size: 18, weight: .semibold))
-                                Text("Choose Video")
-                                    .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .opacity(0.6)
-                            }
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 16)
-                            .background(.blue)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        }
-
-                        // Secondary Action
-                        if !videoManager.extractedFrames.isEmpty {
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    showingFrameLibrary = true
-                                }
-                            } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "photo.stack")
-                                        .font(.system(size: 18, weight: .semibold))
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("View Extracted Frames")
-                                            .font(.system(size: 15, weight: .semibold))
-                                        Text("\(videoManager.extractedFrames.count) frames")
-                                            .font(.caption)
-                                            .opacity(0.6)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .opacity(0.6)
-                                }
-                                .foregroundStyle(.primary)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 16)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(Color(.separator), lineWidth: 1)
-                                )
-                            }
-                            .transition(.scale.combined(with: .opacity))
+                            Label("Settings", systemImage: "gearshape")
                         }
                     }
-                    .padding(.horizontal, 16)
-
-                    // Recent Frames Gallery
-                    if !videoManager.extractedFrames.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Recently Extracted")
-                                .font(.system(size: 17, weight: .semibold))
-                                .padding(.horizontal, 16)
-
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(videoManager.extractedFrames.suffix(6), id: \.id) { frame in
-                                        VStack(spacing: 0) {
-                                            Image(uiImage: frame.image)
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(width: 100, height: 100)
-                                                .clipped()
-                                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-                                            Text(frame.originalMarkedFrame.timeString)
-                                                .font(.caption2)
-                                                .monospacedDigit()
-                                                .foregroundStyle(.secondary)
-                                                .padding(.top, 4)
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, 16)
-                            }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            isChoosingVideo = true
+                        } label: {
+                            Label("Choose Video", systemImage: "video.badge.plus")
                         }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
-
-                    // Quick Stats
-                    if !videoManager.extractedFrames.isEmpty {
-                        HStack(spacing: 12) {
-                            StatTile(
-                                icon: "photo.fill",
-                                label: "Frames",
-                                value: "\(videoManager.extractedFrames.count)"
-                            )
-
-                            StatTile(
-                                icon: "checkmark.circle.fill",
-                                label: "Success",
-                                value: "100%"
-                            )
-                        }
-                        .padding(.horizontal, 16)
-                        .transition(.scale.combined(with: .opacity))
-                    }
-
-                    Spacer(minLength: 40)
                 }
-                .padding(.vertical, 16)
-            }
-
-            // Settings Button
-            VStack {
-                HStack {
-                    Spacer()
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Image(systemName: "gear")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.primary)
-                            .frame(width: 40, height: 40)
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(Circle())
-                    }
-                    .padding(.trailing, 16)
-                    .padding(.top, 12)
-                }
-                Spacer()
-            }
         }
-        .sheet(isPresented: $showingVideoPicker) {
-            VideoPickerView(videoManager: videoManager) {
-                showingVideoPicker = false
-                showingVideoPlayer = true
-            }
+        .photosPicker(isPresented: $isChoosingVideo, selection: $pickedVideo, matching: .videos)
+        .onChange(of: pickedVideo) { _, item in
+            importPicked(item)
         }
-        .fullScreenCover(isPresented: $showingVideoPlayer) {
+        .fullScreenCover(isPresented: $isShowingPlayer, onDismiss: { incoming.consumeReadyVideo() }) {
             if let videoURL = videoManager.selectedVideoURL {
-                VideoPlayerView(videoURL: videoURL, videoManager: videoManager) {
-                    showingVideoPlayer = false
+                VideoPlayerView(videoURL: videoURL) {
+                    isShowingPlayer = false
                 }
+                // A video handed over while the player is open replaces it.
+                .id(videoURL)
             }
         }
-        .sheet(isPresented: $showingFrameLibrary) {
-            FrameLibraryView(videoManager: videoManager)
+        .fullScreenCover(isPresented: $isShowingTutorial, onDismiss: {
+            markOnboardingSeen()
+            presentPendingVideo()
+        }) {
+            OnboardingView { isShowingTutorial = false }
         }
-        .fullScreenCover(isPresented: $showOnboarding) {
-            OnboardingView(showOnboarding: $showOnboarding)
-                .onDisappear {
-                    UserDefaults.standard.set(true, forKey: "hasSeenOnboarding")
-                }
+        .overlay { importOverlay }
+        .onChange(of: incoming.readyVideoURL) { _, url in
+            open(url)
         }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
+        .onAppear {
+            // A hand-off that arrived while the app was launching.
+            open(incoming.readyVideoURL)
+        }
+        .alert(
+            "Couldn’t Open Video",
+            isPresented: Binding(
+                get: { if case .failed = incoming.state { return true } else { return false } },
+                set: { if !$0 { incoming.dismissFailure() } }
+            )
+        ) {
+            Button("OK", role: .cancel) { incoming.dismissFailure() }
+        } message: {
+            if case .failed(let message) = incoming.state {
+                Text(message)
+            }
         }
     }
-}
 
-// MARK: - Stat Tile
+    // MARK: - Content
 
-struct StatTile: View {
-    let icon: String
-    let label: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .center, spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(.blue)
-
-            Text(value)
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(.primary)
-
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+    @ViewBuilder
+    private var content: some View {
+        if videoManager.extractedFrames.isEmpty {
+            emptyState
+        } else {
+            librarySummary
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var emptyState: some View {
+        ContentUnavailableView {
+            Label("No Frames Yet", systemImage: "play.rectangle.on.rectangle")
+        } description: {
+            Text("Choose a video from your library to mark frames, or share a video to Frame Extractor from another app.")
+        } actions: {
+            Button {
+                isChoosingVideo = true
+            } label: {
+                Text("Choose Video")
+                    .frame(maxWidth: 240)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+        }
+    }
+
+    private var librarySummary: some View {
+        List {
+            Section {
+                Button {
+                    path.append(.library)
+                } label: {
+                    LabeledContent {
+                        Text(videoManager.extractedFrames.count.formatted())
+                            .foregroundStyle(.secondary)
+                    } label: {
+                        Label("Extracted Frames", systemImage: "photo.stack")
+                    }
+                }
+
+                Button {
+                    isChoosingVideo = true
+                } label: {
+                    Label("Choose Another Video", systemImage: "video.badge.plus")
+                }
+            }
+
+            Section("Recently Extracted") {
+                ScrollView(.horizontal) {
+                    HStack(spacing: AppTheme.Spacing.md) {
+                        ForEach(videoManager.extractedFrames.suffix(6).reversed()) { frame in
+                            Button {
+                                path.append(.library)
+                            } label: {
+                                VStack(spacing: AppTheme.Spacing.xs) {
+                                    Image(uiImage: frame.thumbnail)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 96, height: 96)
+                                        .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.md))
+                                    Text(frame.timeString)
+                                        .font(AppTheme.Typography.caption2)
+                                        .monospacedDigit()
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .buttonStyle(PressableButtonStyle())
+                            .accessibilityLabel("Frame at \(frame.originalMarkedFrame.accessibilityTimeString)")
+                        }
+                    }
+                    .padding(.vertical, AppTheme.Spacing.xs)
+                }
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+            }
+        }
+        .listStyle(.insetGrouped)
+    }
+
+    // MARK: - Import progress
+
+    @ViewBuilder
+    private var importOverlay: some View {
+        if incoming.state.isImporting || isImportingPick {
+            ZStack {
+                Color.black.opacity(0.25).ignoresSafeArea()
+                VStack(spacing: AppTheme.Spacing.lg) {
+                    ProgressView()
+                        .controlSize(.large)
+                    VStack(spacing: AppTheme.Spacing.xs) {
+                        Text("Preparing Video")
+                            .font(AppTheme.Typography.headline)
+                        if let name = incoming.pendingName {
+                            Text(name)
+                                .font(AppTheme.Typography.footnote)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    }
+                }
+                .padding(AppTheme.Spacing.xl)
+                .background(.regularMaterial, in: .rect(cornerRadius: AppTheme.CornerRadius.xl))
+                .padding(AppTheme.Spacing.xxl)
+                .accessibilityElement(children: .combine)
+            }
+            .transition(.opacity)
+        }
+    }
+
+    // MARK: - Actions
+
+    private func open(_ url: URL?) {
+        guard let url else { return }
+        incoming.consumeReadyVideo()
+        videoManager.selectVideo(url: url)
+
+        // One modal at a time: hand the video to the player once the tutorial
+        // has finished dismissing (HIG › Modality).
+        if isShowingTutorial {
+            videoAwaitingTutorialDismissal = url
+        } else {
+            isShowingPlayer = true
+        }
+    }
+
+    private func presentPendingVideo() {
+        guard let url = videoAwaitingTutorialDismissal else { return }
+        videoAwaitingTutorialDismissal = nil
+        videoManager.selectVideo(url: url)
+        isShowingPlayer = true
+    }
+
+    private func importPicked(_ item: PhotosPickerItem?) {
+        guard let item else { return }
+        Task {
+            isImportingPick = true
+            defer {
+                isImportingPick = false
+                pickedVideo = nil
+            }
+            do {
+                let url = try await VideoImporter.importPicked(item)
+                open(url)
+            } catch {
+                incoming.reportFailure(error.localizedDescription)
+            }
+        }
+    }
+
+    private func markOnboardingSeen() {
+        UserDefaults.standard.set(true, forKey: AppSettings.Key.hasSeenOnboarding)
     }
 }
 
 #Preview {
     ContentView()
+        .environment(VideoManager())
+        .environment(IncomingVideoHandler())
 }

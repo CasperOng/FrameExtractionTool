@@ -5,596 +5,502 @@
 //  Created by Casper Ong on 14/8/2025.
 //
 
-import SwiftUI
-import AVKit
 import AVFoundation
+import AVKit
 import Combine
+import SwiftUI
 
-struct CustomVideoPlayerView: UIViewRepresentable {
+// MARK: - Player surface
+
+/// An `AVPlayerLayer` without the system playback controls, so the app can put a
+/// mark button and its own timeline over the video.
+struct PlayerSurface: UIViewRepresentable {
     let player: AVPlayer
     let videoGravity: AVLayerVideoGravity
-    
-    init(player: AVPlayer, videoGravity: AVLayerVideoGravity = .resizeAspectFill) {
-        self.player = player
-        self.videoGravity = videoGravity
-    }
-    
-    func makeUIView(context: Context) -> PlayerView {
-        let view = PlayerView()
+
+    func makeUIView(context: Context) -> PlayerLayerView {
+        let view = PlayerLayerView()
+        view.backgroundColor = .black
         view.player = player
         view.playerLayer.videoGravity = videoGravity
         return view
     }
-    
-    func updateUIView(_ uiView: PlayerView, context: Context) {
-        uiView.playerLayer.videoGravity = videoGravity
+
+    func updateUIView(_ view: PlayerLayerView, context: Context) {
+        view.player = player
+        view.playerLayer.videoGravity = videoGravity
     }
 }
 
-class PlayerView: UIView {
+final class PlayerLayerView: UIView {
     var player: AVPlayer? {
-        get {
-            return playerLayer.player
-        }
-        set {
-            playerLayer.player = newValue
-        }
+        get { playerLayer.player }
+        set { playerLayer.player = newValue }
     }
-    
+
     var playerLayer: AVPlayerLayer {
-        return layer as! AVPlayerLayer
+        layer as! AVPlayerLayer
     }
-    
-    override static var layerClass: AnyClass {
-        return AVPlayerLayer.self
+
+    override static var layerClass: AnyClass { AVPlayerLayer.self }
+}
+
+// MARK: - Scale
+
+/// How much of the screen the video occupies.
+enum VideoScale: Hashable, Identifiable, CaseIterable {
+    case fit
+    case fill
+    case percent(Int)
+
+    static let percentOptions = [50, 60, 70, 80, 90, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200]
+
+    static var allCases: [VideoScale] {
+        [.fit, .fill] + percentOptions.map { .percent($0) }
+    }
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .fit: "Fit"
+        case .fill: "Fill"
+        case .percent(let value): "\(value)%"
+        }
+    }
+
+    /// `nil` for the two presets, which are handled by the layer's gravity.
+    var multiplier: CGFloat? {
+        switch self {
+        case .fit, .fill: nil
+        case .percent(let value): CGFloat(value) / 100
+        }
     }
 }
 
-enum VideoScale: CaseIterable, Identifiable {
-    case percent50, percent60, percent70, percent80, percent90, fit, fill, percent110, percent120, percent130, percent140, percent150, percent160, percent170, percent180, percent190, percent200
-    
-    var id: Self { self }
-    
-    var displayName: String {
-        switch self {
-        case .percent50: return "50%"
-        case .percent60: return "60%"
-        case .percent70: return "70%"
-        case .percent80: return "80%"
-        case .percent90: return "90%"
-        case .fit: return "Fit"
-        case .fill: return "Fill"
-        case .percent110: return "110%"
-        case .percent120: return "120%"
-        case .percent130: return "130%"
-        case .percent140: return "140%"
-        case .percent150: return "150%"
-        case .percent160: return "160%"
-        case .percent170: return "170%"
-        case .percent180: return "180%"
-        case .percent190: return "190%"
-        case .percent200: return "200%"
-        }
-    }
-    
-    var scaleValue: CGFloat? {
-        switch self {
-        case .percent50: return 0.5
-        case .percent60: return 0.6
-        case .percent70: return 0.7
-        case .percent80: return 0.8
-        case .percent90: return 0.9
-        case .fit: return nil // Will use aspectRatio fit
-        case .fill: return -1 // Special case for fill
-        case .percent110: return 1.1
-        case .percent120: return 1.2
-        case .percent130: return 1.3
-        case .percent140: return 1.4
-        case .percent150: return 1.5
-        case .percent160: return 1.6
-        case .percent170: return 1.7
-        case .percent180: return 1.8
-        case .percent190: return 1.9
-        case .percent200: return 2.0
-        }
-    }
-}
+// MARK: - Player
 
 struct VideoPlayerView: View {
+
     let videoURL: URL
-    @ObservedObject var videoManager: VideoManager
     let onDismiss: () -> Void
+
+    @Environment(VideoManager.self) private var videoManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var player: AVPlayer?
     @State private var isPlaying = false
+    @State private var isMuted = false
     @State private var currentTime: CMTime = .zero
     @State private var duration: CMTime = .zero
-    @State private var showingExtractButton = false
-    @State private var showingExtractionProgress = false
-    @State private var showingHelp = false
-    @State private var cancellables = Set<AnyCancellable>()
-    @State private var videoScale: VideoScale = .fit
-    @State private var showingScaleOptions = false
-    @State private var showingDiscardAlert = false
-    @State private var initialMarkedFramesCount = 0
-    @State private var playbackSpeed: Float = 1.0
-    @State private var showingSpeedOptions = false
-    @State private var customSpeedInput: String = "1.0"
-    @State private var showingCustomSpeedAlert = false
+    @State private var loadFailure: String?
+    @State private var timeObserver: Any?
 
-    private var hasUnsavedChanges: Bool {
-        return videoManager.markedFrames.count != initialMarkedFramesCount
+    @State private var videoScale: VideoScale = .fit
+    @State private var playbackSpeed: Float = 1
+
+    @State private var isShowingExtraction = false
+    @State private var extractionTask: Task<Void, Never>?
+    @State private var isShowingHelp = false
+    @State private var isSuggestingDiscard = false
+    @State private var markedFramesAtEntry = 0
+    @State private var customSpeedText = ""
+    @State private var isEnteringCustomSpeed = false
+
+    private static let speedOptions: [Float] = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+
+    private var markedCount: Int { videoManager.markedFrames.count }
+
+    private var hasUnmarkedChanges: Bool {
+        markedCount != markedFramesAtEntry
     }
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.black.ignoresSafeArea()
-                
+
                 VStack(spacing: 0) {
-                
-                // Video Player
-                GeometryReader { geometry in
-                    ZStack {
-                        if let player = player {
-                            if let scaleValue = videoScale.scaleValue {
-                                if scaleValue == -1 {
-                                    // Fill screen
-                                    CustomVideoPlayerView(player: player, videoGravity: .resizeAspectFill)
-                                        .frame(width: geometry.size.width, height: geometry.size.height)
-                                        .clipped()
-                                        .onTapGesture {
-                                            togglePlayPause()
-                                        }
-                                        .animation(.easeInOut(duration: 0.3), value: videoScale)
-                                } else {
-                                    // Custom scale
-                                    CustomVideoPlayerView(player: player, videoGravity: .resizeAspect)
-                                        .frame(width: geometry.size.width * scaleValue, height: geometry.size.height * scaleValue)
-                                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                                        .clipped()
-                                        .onTapGesture {
-                                            togglePlayPause()
-                                        }
-                                        .animation(.easeInOut(duration: 0.3), value: videoScale)
-                                }
-                            } else {
-                                // Fit to screen
-                                CustomVideoPlayerView(player: player, videoGravity: .resizeAspect)
-                                    .onTapGesture {
-                                        togglePlayPause()
-                                    }
-                                    .animation(.easeInOut(duration: 0.3), value: videoScale)
-                            }
+                    videoSurface
+                    controlPanel
+                        // Attached here rather than to the stack that hosts the
+                        // other alerts, so each alert has its own presenter.
+                        .alert(
+                            "Photo Library Problem",
+                            isPresented: Binding(
+                                get: { videoManager.errorMessage != nil },
+                                set: { if !$0 { videoManager.errorMessage = nil } }
+                            ),
+                            presenting: videoManager.errorMessage
+                        ) { _ in
+                            Button("OK", role: .cancel) {}
+                        } message: { message in
+                            Text(message)
                         }
-                        
-                        // Mark Frame Button Overlay
-                        VStack {
-                            Spacer()
-                            HStack {
-                                Spacer()
-                                Button {
-                                    markCurrentFrame()
-                                } label: {
-                                    Image(systemName: "plus")
-                                        .font(.title2)
-                                        .foregroundStyle(.white)
-                                }
-                                .buttonStyle(.plain)
-                                .frame(width: 56, height: 56)
-                                .background(.blue, in: Circle())
-                                .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-                                .padding(.trailing, 30)
-                                .padding(.bottom, 30)
-                            }
-                        }
-                    }
                 }
-                
-                // Controls
-                VStack(spacing: 20) {
-                    // Timeline with marked frames
-                    VideoTimelineView(
-                        currentTime: currentTime,
-                        duration: duration,
-                        markedFrames: videoManager.markedFrames,
-                        onSeek: { time in
-                            player?.seek(to: time)
-                        },
-                        onRemoveFrame: { frameId in
-                            videoManager.unmarkFrame(frameId: frameId)
-                        }
-                    )
-                    .padding(.top, 8)
-                    
-                    // Play/Pause Controls
-                    HStack(spacing: 30) {
-                        Button {
-                            seekBackward()
-                        } label: {
-                            Image(systemName: "gobackward.10")
-                                .font(.title2)
-                                .foregroundStyle(.white)
-                        }
-                        .buttonStyle(.plain)
-                        .frame(width: 44, height: 44)
-                        .background(.ultraThinMaterial, in: Circle())
-                        
-                        Button {
-                            togglePlayPause()
-                        } label: {
-                            Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                                .font(.title)
-                                .foregroundStyle(.white)
-                        }
-                        .buttonStyle(.plain)
-                        .frame(width: 64, height: 64)
-                        .background(.ultraThinMaterial, in: Circle())
-                        
-                        Button {
-                            seekForward()
-                        } label: {
-                            Image(systemName: "goforward.10")
-                                .font(.title2)
-                                .foregroundStyle(.white)
-                        }
-                        .buttonStyle(.plain)
-                        .frame(width: 44, height: 44)
-                        .background(.ultraThinMaterial, in: Circle())
-                    }
-                    .padding(.bottom, 20)
-                }
-                .padding(.horizontal)
-                .background(.ultraThinMaterial.opacity(0.8))
             }
-            .navigationTitle("Video Player (\(videoManager.markedFrames.count))")
+            .navigationTitle(videoURL.deletingPathExtension().lastPathComponent)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") {
-                        if hasUnsavedChanges {
-                            showingDiscardAlert = true
-                        } else {
-                            onDismiss()
-                        }
-                    }
-                    .foregroundStyle(.white)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 12) {
-                        Button {
-                            showingSpeedOptions = true
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "hare.fill")
-                                Text(String(format: "%.1f×", playbackSpeed))
-                            }
-                            .font(.caption)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(6)
-                        }
-
-                        Button {
-                            showingScaleOptions = true
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "viewfinder")
-                                Text(videoScale.displayName)
-                            }
-                            .font(.caption)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(6)
-                        }
-
-                        Button {
-                            showingHelp = true
-                        } label: {
-                            Image(systemName: "questionmark.circle")
-                                .foregroundStyle(.white)
-                        }
-                    }
-                }
-                
-                ToolbarItemGroup(placement: .bottomBar) {
-                    Spacer()
-                    
-                    if !videoManager.markedFrames.isEmpty {
-                        Button("Extract Frames") {
-                            showingExtractButton = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                    }
-                }
-                }
-            }
+            .toolbar { toolbarContent }
         }
+        // A player reads as a dark surface; the chrome and the loading/error
+        // text follow the video rather than the light appearance of the app.
+        .preferredColorScheme(.dark)
         .onAppear {
-            setupPlayer()
-            initialMarkedFramesCount = videoManager.markedFrames.count
+            startPlayback()
+            markedFramesAtEntry = markedCount
         }
         .onDisappear {
-            player?.pause()
+            stopPlayback()
         }
-        .confirmationDialog("Extract Frames", isPresented: $showingExtractButton) {
-            Button("Extract \(videoManager.markedFrames.count) frames") {
-                extractFrames()
-            }
-            Button("Cancel", role: .cancel) { }
+        .onChange(of: scenePhase) { _, phase in
+            // Leaving the app pauses the video rather than playing on unseen.
+            if phase != .active { player?.pause() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)) { _ in
+            isPlaying = false
+        }
+        .sheet(isPresented: $isShowingExtraction) {
+            ExtractionProgressView(
+                onFinish: { leavePlayer in
+                    isShowingExtraction = false
+                    if leavePlayer { onDismiss() }
+                },
+                onCancel: { extractionTask?.cancel() }
+            )
+        }
+        .sheet(isPresented: $isShowingHelp) {
+            FrameMarkingHelpView()
+                .presentationDetents([.medium, .large])
+        }
+        .alert("Custom Playback Speed", isPresented: $isEnteringCustomSpeed) {
+            TextField("1.0×", text: $customSpeedText)
+                .keyboardType(.decimalPad)
+            Button("Set") { applyCustomSpeed() }
+            Button("Cancel", role: .cancel) {}
         } message: {
-            let useCustomAlbum = UserDefaults.standard.bool(forKey: "useCustomAlbum")
-            let customAlbumName = UserDefaults.standard.string(forKey: "customAlbumName") ?? "Frame Extractor"
-            
-            if useCustomAlbum {
-                Text("This will save \(videoManager.markedFrames.count) frames to the '\(customAlbumName)' album in your photo library.")
-            } else {
-                Text("This will save \(videoManager.markedFrames.count) frames to your photo library.")
-            }
+            Text("Enter a speed between 0.25× and 2×.")
         }
-        .confirmationDialog("Discard Changes", isPresented: $showingDiscardAlert) {
-            Button("Discard \(videoManager.markedFrames.count) marked frames", role: .destructive) {
+        .alert("Unmarked Your Frames?", isPresented: $isSuggestingDiscard) {
+            Button("Discard \(markedCount) Marked Frames", role: .destructive) {
                 videoManager.clearMarkedFrames()
                 onDismiss()
             }
-            Button("Keep Editing", role: .cancel) { }
+            Button("Keep Marking", role: .cancel) {}
         } message: {
-            Text("You have \(videoManager.markedFrames.count) marked frames that haven't been extracted. Do you want to discard them?")
+            Text("These frames have not been extracted yet. Leaving now loses them.")
         }
-        .sheet(isPresented: $showingExtractionProgress) {
-            ExtractionProgressView(videoManager: videoManager) {
-                showingExtractionProgress = false
-                onDismiss()
-            }
-        }
-        .sheet(isPresented: $showingHelp) {
-            FrameMarkingHelpView()
-        }
-        .sheet(isPresented: $showingScaleOptions) {
-            VideoScaleOptionsView(selectedScale: $videoScale)
-        }
-        .sheet(isPresented: $showingSpeedOptions) {
-            VideoSpeedOptionsView(selectedSpeed: $playbackSpeed, showingCustomAlert: $showingCustomSpeedAlert, customSpeedInput: $customSpeedInput, onSpeedChange: { speed in
-                setPlaybackSpeed(speed)
-            })
-        }
-        .alert("Custom Playback Speed", isPresented: $showingCustomSpeedAlert) {
-            TextField("Speed (0.25x - 2.0x)", text: $customSpeedInput)
-            Button("Set") {
-                if let speed = Float(customSpeedInput), speed >= 0.25 && speed <= 2.0 {
-                    playbackSpeed = speed
-                    setPlaybackSpeed(speed)
-                    customSpeedInput = "1.0"
+    }
+
+    // MARK: - Video
+
+    @ViewBuilder
+    private var videoSurface: some View {
+        GeometryReader { geometry in
+            ZStack {
+                videoLayer(in: geometry.size)
+                    .accessibilityHidden(true)
+
+                if player != nil {
+                    markButton
                 }
             }
-            Button("Cancel", role: .cancel) {
-                customSpeedInput = "1.0"
-            }
-        } message: {
-            Text("Enter a custom playback speed between 0.25× and 2.0×")
         }
     }
-    
-    private func setupPlayer() {
-        player = AVPlayer(url: videoURL)
-        
-        // Observe time updates
-        player?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.1, preferredTimescale: 600), queue: .main) { time in
-            currentTime = time
-        }
-        
-        // Get duration
-        Task {
-            let asset = AVAsset(url: videoURL)
-            duration = try await asset.load(.duration)
-        }
-        
-        // Observe playing state
-        player?.publisher(for: \.rate)
-            .map { $0 > 0 }
-            .sink { playing in
-                isPlaying = playing
+
+    @ViewBuilder
+    private func videoLayer(in size: CGSize) -> some View {
+        if let loadFailure {
+            ContentUnavailableView {
+                Label("Can’t Play This Video", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(loadFailure)
             }
-            .store(in: &cancellables)
-    }
-    
-    private func togglePlayPause() {
-        if isPlaying {
-            player?.pause()
+        } else if let player {
+            surface(for: player, in: size)
         } else {
-            player?.play()
-        }
-    }
-    
-    private func seekBackward() {
-        guard let player = player else { return }
-        let currentTime = player.currentTime()
-        let newTime = CMTimeSubtract(currentTime, CMTime(seconds: 10, preferredTimescale: 600))
-        player.seek(to: max(newTime, .zero))
-    }
-    
-    private func seekForward() {
-        guard let player = player else { return }
-        let currentTime = player.currentTime()
-        let newTime = CMTimeAdd(currentTime, CMTime(seconds: 10, preferredTimescale: 600))
-        player.seek(to: min(newTime, duration))
-    }
-    
-    private func markCurrentFrame() {
-        guard let player = player else { return }
-        let currentTime = player.currentTime()
-        videoManager.markFrame(at: currentTime, player: player)
-    }
-    
-    private func extractFrames() {
-        showingExtractionProgress = true
-        Task {
-            try await videoManager.extractAllMarkedFrames()
+            ProgressView()
+                .tint(.white)
+                .accessibilityLabel("Loading video")
         }
     }
 
-    private func setPlaybackSpeed(_ speed: Float) {
-        guard let player = player else { return }
-        player.rate = speed
-    }
-}
-
-struct VideoSpeedOptionsView: View {
-    @Binding var selectedSpeed: Float
-    @Binding var showingCustomAlert: Bool
-    @Binding var customSpeedInput: String
-    let onSpeedChange: (Float) -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    private let presetSpeeds: [Float] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    ForEach(presetSpeeds, id: \.self) { speed in
-                        Button {
-                            selectedSpeed = speed
-                            onSpeedChange(speed)
-                            dismiss()
-                        } label: {
-                            HStack {
-                                Text(String(format: "%.2f×", speed))
-                                    .foregroundStyle(.primary)
-                                    .fontWeight(abs(selectedSpeed - speed) < 0.01 ? .semibold : .regular)
-
-                                Spacer()
-
-                                if abs(selectedSpeed - speed) < 0.01 {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.blue)
-                                } else {
-                                    Image(systemName: "circle")
-                                        .foregroundStyle(.gray.opacity(0.3))
-                                }
-                            }
-                        }
-                    }
-                } header: {
-                    Text("Preset Speeds")
-                } footer: {
-                    Text("Select a common playback speed")
-                }
-
-                Section {
-                    Button {
-                        showingCustomAlert = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "slider.horizontal.3")
-                            Text("Custom Speed")
-                                .foregroundStyle(.blue)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundStyle(.gray)
-                        }
-                    }
-                } footer: {
-                    Text("Set a custom speed between 0.25× and 2.0×")
-                }
-            }
-            .navigationTitle("Playback Speed")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
+    @ViewBuilder
+    private func surface(for player: AVPlayer, in size: CGSize) -> some View {
+        if let multiplier = videoScale.multiplier {
+            PlayerSurface(player: player, videoGravity: .resizeAspect)
+                .frame(width: size.width * multiplier, height: size.height * multiplier)
+                .position(x: size.width / 2, y: size.height / 2)
+                .clipped()
+                .onTapGesture { togglePlayPause() }
+        } else {
+            PlayerSurface(player: player, videoGravity: videoScale == .fill ? .resizeAspectFill : .resizeAspect)
+                .frame(width: size.width, height: size.height)
+                .clipped()
+                .onTapGesture { togglePlayPause() }
         }
-        .presentationDetents([.medium, .large])
     }
-}
 
-struct VideoScaleOptionsView: View {
-    @Binding var selectedScale: VideoScale
-    @Environment(\.dismiss) private var dismiss
-    
-    private let presetScales: [VideoScale] = [.fit, .fill]
-    private let percentageScales: [VideoScale] = [.percent50, .percent60, .percent70, .percent80, .percent90, .percent110, .percent120, .percent130, .percent140, .percent150, .percent160, .percent170, .percent180, .percent190, .percent200]
-    
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    ForEach(presetScales) { scale in
-                        ScaleOptionRow(scale: scale, selectedScale: $selectedScale) {
-                            dismiss()
-                        }
-                    }
-                } header: {
-                    Text("Preset Options")
-                } footer: {
-                    Text("'Fit' maintains aspect ratio within screen bounds. 'Fill' scales to fill the entire screen.")
-                }
-                
-                Section {
-                    ForEach(percentageScales) { scale in
-                        ScaleOptionRow(scale: scale, selectedScale: $selectedScale) {
-                            dismiss()
-                        }
-                    }
-                } header: {
-                    Text("Custom Scale")
-                } footer: {
-                    Text("Choose a specific percentage to scale the video. Values over 100% may require scrolling.")
-                }
-            }
-            .navigationTitle("Video Scale")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
-    }
-}
-
-struct ScaleOptionRow: View {
-    let scale: VideoScale
-    @Binding var selectedScale: VideoScale
-    let onSelect: () -> Void
-    
-    var body: some View {
-        Button {
-            selectedScale = scale
-            onSelect()
-        } label: {
+    private var markButton: some View {
+        VStack {
+            Spacer()
             HStack {
-                Text(scale.displayName)
-                    .foregroundStyle(.primary)
-                    .fontWeight(scale == selectedScale ? .semibold : .regular)
-                
                 Spacer()
-                
-                if scale == selectedScale {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.blue)
-                } else {
-                    Image(systemName: "circle")
-                        .foregroundStyle(.gray.opacity(0.3))
+                Button {
+                    videoManager.markFrame(at: player?.currentTime() ?? currentTime)
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 60, height: 60)
+                        .background(.tint, in: .circle)
+                        .shadow(color: .black.opacity(0.35), radius: 8, y: 4)
                 }
+                .buttonStyle(PressableButtonStyle())
+                .accessibilityLabel("Mark frame")
+                .accessibilityHint("Adds the frame on screen to the frames to extract")
+                .padding(AppTheme.Spacing.xl)
             }
         }
-        .buttonStyle(.plain)
     }
+
+    // MARK: - Controls
+
+    private var controlPanel: some View {
+        VStack(spacing: AppTheme.Spacing.lg) {
+            VideoTimelineView(
+                currentTime: currentTime,
+                duration: duration,
+                markedFrames: videoManager.markedFrames,
+                onSeek: { seek(to: $0) },
+                onRemoveMark: { videoManager.unmarkFrame(id: $0) }
+            )
+
+            HStack(spacing: AppTheme.Spacing.xxl) {
+                transportButton(systemImage: "gobackward.10", label: "Back 10 seconds") {
+                    skip(by: -10)
+                }
+                transportButton(
+                    systemImage: isPlaying ? "pause.fill" : "play.fill",
+                    label: isPlaying ? "Pause" : "Play",
+                    size: 64
+                ) {
+                    togglePlayPause()
+                }
+                transportButton(systemImage: "goforward.10", label: "Forward 10 seconds") {
+                    skip(by: 10)
+                }
+            }
+
+            if markedCount > 0 {
+                Button {
+                    extractFrames()
+                } label: {
+                    Label("Extract \(markedCount) Frame\(markedCount == 1 ? "" : "s")", systemImage: "square.and.arrow.down")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .accessibilityHint("Saves every marked frame to your photo library")
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .padding(AppTheme.Spacing.lg)
+        .background(.bar)
+        .animation(AppTheme.Motion.springy(reduceMotion), value: markedCount)
+    }
+
+    private func transportButton(
+        systemImage: String,
+        label: String,
+        size: CGFloat = 48,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: size * 0.4, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(width: size, height: size)
+                .background(.thickMaterial, in: .circle)
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel(label)
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button {
+                attemptDismiss()
+            } label: {
+                Image(systemName: "xmark")
+            }
+            .accessibilityLabel("Close video")
+        }
+
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            Button {
+                toggleMute()
+            } label: {
+                Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+            }
+            .accessibilityLabel(isMuted ? "Unmute" : "Mute")
+
+            Menu {
+                Menu("Playback Speed") {
+                    ForEach(Self.speedOptions, id: \.self) { speed in
+                        Toggle(Self.speedTitle(speed), isOn: Binding(
+                            get: { abs(playbackSpeed - speed) < 0.01 },
+                            set: { isOn in if isOn { setSpeed(speed) } }
+                        ))
+                    }
+                    Divider()
+                    Button("Custom Speed…") {
+                        customSpeedText = String(format: "%.2f", playbackSpeed)
+                        isEnteringCustomSpeed = true
+                    }
+                }
+
+                Menu("Video Size") {
+                    ForEach(VideoScale.allCases) { scale in
+                        Toggle(scale.title, isOn: Binding(
+                            get: { videoScale == scale },
+                            set: { isOn in if isOn { videoScale = scale } }
+                        ))
+                    }
+                }
+
+                Divider()
+
+                Button {
+                    isShowingHelp = true
+                } label: {
+                    Label("How to Mark Frames", systemImage: "questionmark.circle")
+                }
+            } label: {
+                Label("Playback options", systemImage: "slider.horizontal.3")
+            }
+        }
+    }
+
+    // MARK: - Playback
+
+    private func startPlayback() {
+        let player = AVPlayer(url: videoURL)
+        player.defaultRate = playbackSpeed
+        self.player = player
+
+        timeObserver = player.addPeriodicTimeObserver(
+            forInterval: CMTime(seconds: 0.05, preferredTimescale: 600),
+            queue: .main
+        ) { time in
+            currentTime = time
+            isPlaying = player.timeControlStatus == .playing
+        }
+
+        Task {
+            let asset = AVURLAsset(url: videoURL)
+            do {
+                let (playable, assetDuration) = try await asset.load(.isPlayable, .duration)
+                guard playable else {
+                    loadFailure = "This file does not contain a video track that can be played."
+                    return
+                }
+                duration = assetDuration.isNumeric ? assetDuration : .zero
+            } catch {
+                loadFailure = error.localizedDescription
+            }
+        }
+    }
+
+    private func stopPlayback() {
+        player?.pause()
+        if let timeObserver, let player {
+            player.removeTimeObserver(timeObserver)
+        }
+        timeObserver = nil
+        player = nil
+    }
+
+    private func togglePlayPause() {
+        guard let player else { return }
+        if player.timeControlStatus == .playing {
+            player.pause()
+            isPlaying = false
+        } else {
+            if duration.isNumeric, player.currentTime() >= duration {
+                player.seek(to: .zero)
+            }
+            player.play()
+            isPlaying = true
+        }
+    }
+
+    private func toggleMute() {
+        guard let player else { return }
+        player.isMuted.toggle()
+        isMuted = player.isMuted
+    }
+
+    private func skip(by seconds: Double) {
+        guard let player, duration.isNumeric else { return }
+        let target = CMTimeAdd(player.currentTime(), CMTime(seconds: seconds, preferredTimescale: 600))
+        seek(to: CMTimeMaximum(.zero, CMTimeMinimum(target, duration)))
+    }
+
+    private func seek(to time: CMTime) {
+        guard let player, time.isNumeric else { return }
+        player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero)
+        currentTime = time
+    }
+
+    private func setSpeed(_ speed: Float) {
+        playbackSpeed = speed
+        guard let player else { return }
+        player.defaultRate = speed
+        // Keep playing at the new speed; do not start playback if it is paused.
+        if player.timeControlStatus == .playing {
+            player.rate = speed
+        }
+    }
+
+    private func applyCustomSpeed() {
+        let normalized = customSpeedText
+            .replacingOccurrences(of: ",", with: ".")
+            .replacingOccurrences(of: "×", with: "")
+            .trimmingCharacters(in: .whitespaces)
+        guard let speed = Float(normalized), (0.25...2).contains(speed) else { return }
+        setSpeed(speed)
+    }
+
+    private static func speedTitle(_ speed: Float) -> String {
+        var text = String(format: "%.2f", speed)
+        while text.hasSuffix("0") { text.removeLast() }
+        if text.hasSuffix(".") { text.removeLast() }
+        return text + "×"
+    }
+
+    // MARK: - Actions
+
+    private func attemptDismiss() {
+        if hasUnmarkedChanges {
+            isSuggestingDiscard = true
+        } else {
+            onDismiss()
+        }
+    }
+
+    private func extractFrames() {
+        isShowingExtraction = true
+        extractionTask = Task { await videoManager.extractMarkedFrames() }
+    }
+}
+
+#Preview {
+    VideoPlayerView(videoURL: URL(fileURLWithPath: "/dev/null")) {}
+        .environment(VideoManager())
 }
