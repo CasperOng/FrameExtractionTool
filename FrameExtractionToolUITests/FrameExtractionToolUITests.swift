@@ -19,6 +19,9 @@ final class FrameExtractionToolUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-hasSeenOnboarding", onboardingSeen ? "YES" : "NO"]
         app.launch()
+        // CI runners can be slow to bring the simulator up; wait for the app
+        // before interacting with it.
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 60))
         return app
     }
 
@@ -26,23 +29,25 @@ final class FrameExtractionToolUITests: XCTestCase {
     func testEmptyStateOffersTheMainActions() throws {
         let app = launchApp()
 
-        XCTAssertTrue(app.navigationBars["Frame Extractor"].waitForExistence(timeout: 15))
-        XCTAssertTrue(app.buttons["Choose Video"].firstMatch.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Settings"].exists)
-        XCTAssertTrue(app.staticTexts["No Frames Yet"].exists)
+        XCTAssertTrue(app.navigationBars["Frame Extractor"].waitForExistence(timeout: 60))
+        XCTAssertTrue(app.buttons["Choose Video"].firstMatch.waitForExistence(timeout: 30))
+        XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.staticTexts["No Frames Yet"].waitForExistence(timeout: 30))
     }
 
     @MainActor
     func testSettingsScreenShowsPreferencesAndVersion() throws {
         let app = launchApp()
 
-        app.buttons["Settings"].tap()
+        let settingsButton = app.buttons["Settings"]
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 60))
+        settingsButton.tap()
 
-        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.switches["Haptic Feedback"].exists)
-        XCTAssertTrue(app.switches["Save to an Album"].exists)
-        XCTAssertTrue(app.staticTexts["Version"].exists)
-        XCTAssertTrue(app.buttons["Show Tutorial"].exists)
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 60))
+        XCTAssertTrue(app.switches["Haptic Feedback"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.switches["Save to an Album"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.staticTexts["Version"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.buttons["Show Tutorial"].waitForExistence(timeout: 30))
     }
 
     @MainActor
@@ -51,17 +56,17 @@ final class FrameExtractionToolUITests: XCTestCase {
 
         // First run: the tour appears before anything else.
         let continueButton = app.buttons["Continue"]
-        XCTAssertTrue(continueButton.waitForExistence(timeout: 15))
+        XCTAssertTrue(continueButton.waitForExistence(timeout: 60))
 
         continueButton.tap()
         continueButton.tap()
         continueButton.tap()
 
         let getStarted = app.buttons["Get Started"]
-        XCTAssertTrue(getStarted.waitForExistence(timeout: 10))
+        XCTAssertTrue(getStarted.waitForExistence(timeout: 30))
         getStarted.tap()
 
-        XCTAssertTrue(app.navigationBars["Frame Extractor"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Frame Extractor"].waitForExistence(timeout: 30))
         XCTAssertTrue(app.buttons["Choose Video"].firstMatch.exists)
     }
 }
