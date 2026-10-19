@@ -4,148 +4,117 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Frame Extraction Tool** is a SwiftUI-based iOS app (iOS 17.0+) that extracts high-quality frames from videos with precision timing control. The app allows users to mark specific frames during playback, then extract and save them to a custom photo album. The app is developed without an Apple Developer Program membership, so builds are unsigned and intended for development/testing.
+**Frame Extraction Tool** is a SwiftUI-based iOS app (iOS 17.0+) that extracts high-quality frames from videos with precision timing control. The app allows users to mark specific frames during playback, then extract and save them to a custom photo album. Videos can also be handed to the app from other apps (share sheet, "Open in", AirDrop, `frameextractor://` links).
 
-## Build & Development Commands
+The app is developed without an Apple Developer Program membership, so builds are unsigned and intended for development/testing.
 
-### Building the app
+## Build, Test & CI/CD
+
+**Do not build or test on the development machine.** GitHub Actions is the source of truth for building and testing; run work through CI and read the results there.
+
+| Workflow | What it does |
+| --- | --- |
+| `.github/workflows/build-ipa.yml` | Unsigned IPA on push to `main`/`develop`, PRs, tags; creates pre-releases for `v*` tags |
+| `.github/workflows/build-ipa-ios27.yml` | Same build against the newest iOS SDK |
+| `.github/workflows/tests.yml` | Unit tests (`FrameExtractionToolTests`) and UI smoke tests (`FrameExtractionToolUITests`) on a simulator picked at runtime |
+
+Useful commands:
+
 ```bash
-xcodebuild -project FrameExtractionTool.xcodeproj -scheme FrameExtractionTool build
+gh run list --limit 5                     # recent runs
+gh run watch                              # follow the run for the current commit
+gh run view --log-failed                  # what broke
+gh workflow run tests.yml                 # re-run tests for a branch
 ```
 
-### Building for simulator
-```bash
-xcodebuild -project FrameExtractionTool.xcodeproj -scheme FrameExtractionTool -destination 'platform=iOS Simulator,name=iPhone 14 Pro' build
-```
+For reference, the equivalent local commands are:
 
-### Running unit tests
 ```bash
-xcodebuild -project FrameExtractionTool.xcodeproj -scheme FrameExtractionTool test
-```
-
-### Running UI tests
-```bash
-xcodebuild -project FrameExtractionTool.xcodeproj -scheme FrameExtractionToolUITests test
-```
-
-### Building unsigned archive for release
-```bash
+xcodebuild -project FrameExtractionTool.xcodeproj -scheme FrameExtractionTool -destination 'platform=iOS Simulator,name=iPhone 17' build
+xcodebuild -project FrameExtractionTool.xcodeproj -scheme FrameExtractionTool -destination 'platform=iOS Simulator,name=iPhone 17' test
 xcodebuild -project FrameExtractionTool.xcodeproj -scheme FrameExtractionTool -configuration Release -destination 'generic/platform=iOS' -archivePath build/FrameExtractionTool.xcarchive archive CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-```
-
-### Preferred: Use Xcode directly
-For most development work, open the project in Xcode and build/run from the IDE, especially when testing UI or debugging:
-```bash
-open FrameExtractionTool.xcodeproj
 ```
 
 ## Architecture & Structure
 
 ### Core Layers
 
-**VideoManager** (VideoManager.swift): The central state container (ObservableObject) managing video selection, frame marking, and frame extraction. This is the main ViewModel that UI views observe. Key responsibilities:
-- Managing marked frames and extracted frames state
-- Coordinating video playback and frame extraction logic
-- Handling haptic feedback based on user preferences
-- Managing photo library integration (reading and writing)
+**VideoManager** (`VideoManager.swift`): `@Observable` source of truth for the loaded video, marked frames, extracted frames and extraction progress. Owns photo library access (authorization, saving, album handling, deletion) and the `AVAssetImageGenerator` pipeline.
 
-**UI Views**: SwiftUI view hierarchy organized by feature:
-- `FrameExtractionToolApp.swift` - App entry point, single WindowGroup with ContentView
-- `ContentView.swift` - Main tab/navigation controller for the app
-- `VideoPickerView.swift` - Video selection from photo library
-- `VideoPlayerView.swift` - Video playback with AVPlayer, handles frame marking UI
-- `VideoTimelineView.swift` - Visual timeline showing marked frames and playback position
-- `FrameLibraryView.swift` - Gallery of extracted frames, supports selection and deletion
-- `ExtractionProgressView.swift` - Progress indicator during frame extraction
-- `SettingsView.swift` - User preferences (album name, haptic feedback, etc.)
-- `OnboardingView.swift` - Tutorial/intro screen on first launch
-- `FrameMarkingHelpView.swift` - Help documentation for frame marking
+**IncomingVideoHandler** (`IncomingVideoHandler.swift`): turns a URL delivered by the system — a file hand-off or a `frameextractor://` link — into an imported video and publishes it for the UI. Reachable as `.shared` and injectable for tests.
+
+**VideoStore** (`VideoStore.swift`): file storage for imported videos (`Application Support/ImportedVideos`). Validates the file type with `UTType`, copies videos out of the sender's sandbox, keeps names unique, and clears out stale imports and `Documents/Inbox` leftovers at launch.
+
+**AppSettings** (`AppSettings.swift`): defaults keys, default registration, and bundle version helpers.
+
+### UI Views
+
+- `FrameExtractionToolApp.swift` — app entry point: `WindowGroup`, environment objects, `UIApplicationDelegateAdaptor`, `onOpenURL`
+- `ContentView.swift` — root `NavigationStack`; empty state or library summary, photo picker, player and tutorial presentation
+- `VideoImport.swift` — `MovieFile` `Transferable` (imports the picked video off the main actor) and `VideoImporter`
+- `VideoPlayerView.swift` — video surface without system controls, mark button, transport controls, playback options menu
+- `VideoTimelineView.swift` — scrub bar with marked-frame flags and a marked-frame strip
+- `FrameLibraryView.swift` — grid of extracted frames, selection, deletion, full-screen detail with zoom and share
+- `ExtractionProgressView.swift` — progress, cancel, and the result summary
+- `SettingsView.swift` — grouped `Form` with haptics, album, tutorial and version
+- `OnboardingView.swift` — first-run tour (also shown from Settings)
+- `FrameMarkingHelpView.swift` — short instructions inside the player
+- `DesignSystem.swift` — `AppTheme` tokens (semantic typography, spacing, motion), press states, haptics
 
 ### Data Models
 
-Key model types (inferred from VideoManager usage):
-- `MarkedFrame` - Represents a frame marked for extraction, contains timestamp and video URL
-- `ExtractedFrame` - Represents an extracted frame saved to photo library, includes photo asset identifier for deletion
+In `FrameModels.swift`:
+- `MarkedFrame` — a frame marked for extraction (time and source video), with formatted and spoken time strings
+- `ExtractedFrame` — a saved frame: an in-memory thumbnail, the photo library identifier, and the source mark
+- `ExtractionSummary` / `ExtractionError` — result reporting
 
 ### Framework Dependencies
 
-- **SwiftUI** - Declarative UI framework
-- **AVFoundation** - Video playback (AVPlayer), frame extraction, timing (CMTime)
-- **Photos/PhotosUI** - Photo library access, custom album management
-- **CoreImage** - Image processing (likely for frame conversion)
-- **Combine** - Reactive publishers for ObservableObject
-- **Swift Concurrency** - async/await patterns for async operations (photo library writes/deletes)
+SwiftUI, AVFoundation, Photos/PhotosUI, UniformTypeIdentifiers, Observation, OSLog
 
 ### Key Design Patterns
 
-- **MVVM**: Views observe VideoManager (ViewModel)
-- **State Management**: Single source of truth in VideoManager via @Published properties
-- **MainActor**: VideoManager marked with @MainActor to ensure UI updates on main thread
-- **Photo Library Integration**: Uses Photos framework with PHPhotoLibrary for read/write access and custom albums
+- **`@Observable` models** injected with `.environment(...)`, read with `@Environment(Type.self)`
+- **MainActor by default** (`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`); file I/O is marked `nonisolated` and run in `Task.detached`
+- **One modal at a time** — the player and the tutorial are full-screen covers, everything else is a push or a sheet
+- **Accessibility is part of the design**: semantic text styles, VoiceOver labels/hints, 44 pt hit targets, Reduce Motion
 
-## CI/CD
+## Bringing Videos Into the App
 
-### GitHub Actions
-- **File**: `.github/workflows/build-ipa.yml`
-- **Trigger**: Push to main or pull requests, Git tags (v*)
-- **Output**: Unsigned IPA files for testing
-- **Releases**: Creates GitHub pre-releases for tagged versions with auto-generated changelogs
-- Automatically detects latest iOS SDK
+`FrameExtractionTool/Info.plist` is a *partial* Info.plist: Xcode generates the rest from the target's `INFOPLIST_KEY_*` build settings and merges them with this file, so only keys with no build setting belong in it.
 
-### CodeMagic
-- **File**: `codemagic.yaml`
-- **Workflows**: 
-  - `ios-unsigned-workflow` - Standard builds for development
-  - `ios-release-workflow` - Release builds triggered by Git tags (v1.0.0 format), creates GitHub pre-releases
-- **Build Environment**: M1 Mac mini instance
-- **Output**: Unsigned IPA files
-- **Notifications**: Discord webhook notifications (requires WEBHOOK_URL in discord_credentials group)
-- **GitHub Releases**: Requires GITHUB_TOKEN in environment to create pre-releases (optional)
+It declares:
 
-Note: Both CI systems build with code signing disabled (`CODE_SIGNING_REQUIRED=NO`) and create **pre-releases** on GitHub for tagged versions.
+- `CFBundleDocumentTypes` for the movie UTIs, with `LSHandlerRank = Alternate` so the app offers to open videos without becoming the system default
+- `LSSupportsOpeningDocumentsInPlace = false`, so iOS copies handed-over files into `Documents/Inbox`
+- `CFBundleURLTypes` with the `frameextractor` scheme
+
+Delivery paths:
+
+- **Open in / share sheet / AirDrop**: `application(_:open:options:)` on `AppDelegate` (SwiftUI's `onOpenURL` is only documented for universal links and custom schemes, so the delegate is the reliable path for files) — `onOpenURL` is also wired up and duplicates are filtered in `IncomingVideoHandler`
+- **Photo library**: `PhotosPicker` in `ContentView`, imported through `MovieFile`
+- Everything ends up in `VideoStore`, and `IncomingVideoHandler.readyVideoURL` opens the player
+
+Notes:
+
+- The file hand-off is asynchronous: the UI shows a "Preparing Video" overlay while a large video is copied
+- Unsuitable files (a PDF opened with the app, for example) surface a readable alert instead of failing silently
+- `frameMarkingHelp` content lives in `FrameMarkingHelpView.swift`; tests for import and URL handling live in `FrameExtractionToolTests` — add cases there rather than testing through the UI
 
 ## Important Notes
 
-- **No Code Signing**: This project cannot be code-signed or distributed via App Store. All builds are unsigned for development/testing only.
-- **Haptic Feedback**: Stored in UserDefaults under key "hapticFeedback", defaults to enabled
-- **Photo Library Permissions**: App requires photo library read/write permissions
-- **Swift Concurrency**: Photo library operations use async/await; always wrap in Task when called from sync contexts
-- **Custom Albums**: Users can customize the photo album name where frames are saved (stored in UserDefaults)
-- **App Groups**: Uses `group.caspernyong.FrameExtractionTool` for sharing data between main app and share extension
-
-## Share Extension
-
-The app includes a Share Extension that allows users to send videos directly from other apps (Photos, Files, Safari, etc.).
-
-### How to Use
-1. Open Photos, Files, or any app with videos
-2. Select a video and tap the Share button
-3. Choose "Frame Extractor" from the share sheet
-4. The main app will open with the video ready for frame marking
-
-### Technical Details
-- **Extension Bundle ID**: `caspernyong.FrameExtractionTool.ShareExtension`
-- **App Group**: `group.caspernyong.FrameExtractionTool`
-- **Supported Types**: All video formats (public.movie, public.video)
-- **Data Sharing**: Uses App Group UserDefaults for inter-process communication
-- **URL Scheme**: `frameextractor://` for opening main app from extension
-
-### Architecture
-- `ShareViewController.swift` - Extension entry point with SwiftUI view
-- `SharedDataManager.swift` - Manages data exchange between app and extension
-- Videos are copied to main app's temp directory for processing
-- Main app checks for pending videos on launch/foreground
-
-### Development Notes
-- Share extension runs in separate process with limited memory (~120MB)
-- Videos are passed via URL, not loaded in extension memory
-- Shared data is automatically cleared after successful import
-- Extension must be added as a target in Xcode project
+- **No Code Signing**: this project cannot be code-signed or distributed via the App Store. All builds are unsigned for development/testing only.
+- **Haptic Feedback**: stored in UserDefaults under key `hapticFeedback` (default `true`, registered in `AppSettings.registerDefaults()`)
+- **Photo Library Permissions**: adding frames needs add-only access; albums and deletion need read-write access. The app degrades gracefully when only add-only access is granted.
+- **Custom Albums**: name stored under `customAlbumName`
+- **Memory**: extracted frames are held as thumbnails (`ExtractedFrame.thumbnail`); full-resolution images are fetched from the photo library on demand with `PHImageManager`
+- **Entitlements**: there is no entitlements file — the App Group from the removed share extension is gone
 
 ## Testing Notes
 
-- Unit tests are minimal; UI testing is the primary verification method
-- Test the golden path: select video → play → mark frames → extract → verify in photo album
-- When modifying photo library integration, verify both app-side deletion and actual Photos app cleanup work correctly
-- Haptic feedback should be tested on physical device (simulator has limited haptic support)
-- **Share Extension Testing**: Test sharing videos from Photos, Files, and Safari to verify the extension appears and works correctly
+- Unit tests use **Swift Testing** (`import Testing`, `@Test`, `#expect`), UI tests use XCTest
+- Prefer unit tests for logic (formatting, importing, URL handling); the UI tests are smoke tests for launch, the empty state, Settings and the tutorial
+- Test the golden path manually when a change touches them: choose a video → play → mark frames → extract → verify in the photo album
+- Share/open-in paths can be exercised by opening a file URL from another app, AirDropping a video, or opening `frameextractor://open?video=…`
+- When modifying photo library integration, verify both app-side deletion and actual Photos app cleanup
+- Haptic feedback should be tested on a physical device (simulator has limited haptic support)

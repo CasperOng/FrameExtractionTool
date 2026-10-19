@@ -7,12 +7,35 @@ A powerful iOS app for extracting high-quality frames from videos with precision
 ## Features
 
 🎬 **Video Selection** - Choose videos from your photo library  
+📥 **Share & Open In** - Send a video to the app from Photos, Files, AirDrop or a link  
 📍 **Frame Marking** - Mark specific frames during playback  
 💾 **High-Quality Extraction** - Extract frames at original video quality  
 📚 **Custom Album Support** - Save extracted frames to custom photo albums  
 🗑️ **Smart Delete** - Remove frames from both app AND Photos library  
 📱 **Long-Press & Multi-Select** - Advanced deletion with haptic feedback  
-✨ **Modern UI** - Built with SwiftUI and iOS design guidelines  
+♿️ **Accessible** - Dynamic Type, VoiceOver labels, 44 pt hit targets and Reduce Motion support  
+✨ **Modern UI** - Native SwiftUI navigation, forms and menus
+
+## 🆕 What's New in v1.6.0
+
+### 📥 **Send Videos Straight to the App**
+- **Share sheet & “Open in”**: share a video with Frame Extractor from Photos, Files, Safari or any app — it opens ready to mark
+- **AirDrop**: dropping a video on your device now offers Frame Extractor
+- **`frameextractor://` links**: automations and Shortcuts can open a video with `frameextractor://open?video=<file URL>`
+
+### ♿️ **Rebuilt to Apple's Guidelines**
+- **Dynamic Type**: text scales with your system text size
+- **VoiceOver**: labels and hints on every control, plus an adjustable timeline you can scrub with swipe up/down
+- **44 pt hit targets** everywhere, including the timeline flags
+- **Native navigation and forms**, system materials instead of decorative gradients, and menus in the toolbar
+- **Reduce Motion** respected by every animation
+
+### 🔧 **Reliability**
+- **Cancelable extraction** — stop a long run and keep the frames already saved
+- **Honest results** — the summary reports frames saved and frames that failed
+- **Smaller memory use** — the library keeps thumbnails and loads full-resolution frames on demand
+- **Fixed album saving** — custom albums need full photo library access and now fall back gracefully instead of failing
+- **Fixed the playback time observer leak** and the speed control no longer starts playback on its own
 
 ## 🆕 What's New in v1.5.1
 
@@ -97,18 +120,28 @@ If you have an Apple Developer Program membership:
 1. **Launch the app** and complete the onboarding tutorial
 2. **Select a video** from your photo library using the video picker
 3. **Play the video** and use the timeline to navigate to desired frames
-4. **Mark frames** by tapping the mark button during playback
-5. **Review marked frames** in the timeline (red markers)
+4. **Mark frames** by tapping the plus button during playback
+5. **Review marked frames** on the timeline and along the bottom of the player
 6. **Extract frames** to save high-quality images to your photo library
 7. **Manage settings** including custom album names and haptic feedback
+
+### Starting from another app
+
+You do not have to pick a video inside the app first — Frame Extractor can be handed a video:
+
+- **Share sheet** — in Photos, Files, Safari or any other app, tap Share and choose **Frame Extractor**. The video is imported and opens ready to mark. (If it is not listed, tap **Edit Actions…** in the share sheet and turn it on.)
+- **Open in / Open with** — in Files, touch and hold a video and choose **Open With → Frame Extraction Tool**, or double-click it on a device with a keyboard.
+- **AirDrop** — AirDrop a video to your iPhone or iPad and choose Frame Extractor.
+- **Links and Shortcuts** — open `frameextractor://` to launch the app, or `frameextractor://open?video=<percent-encoded file URL>` to open a specific video. In Shortcuts, use **Open URLs** with that link.
 
 ## Architecture
 
 - **SwiftUI** - Modern declarative UI framework
 - **AVFoundation** - Video processing and playback
 - **Photos/PhotosUI** - Photo library integration
-- **Combine** - Reactive programming patterns
+- **Swift Observation** - `@Observable` models driving SwiftUI
 - **Swift Concurrency** - Modern async/await patterns
+- **UniformTypeIdentifiers** - Deciding which files the app can open
 
 ## CI/CD Workflows
 

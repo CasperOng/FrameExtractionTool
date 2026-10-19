@@ -5,6 +5,37 @@ All notable changes to the Frame Extraction Tool will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-10-20
+
+### ✨ New: Send videos to the app from anywhere
+- **Share sheet and “Open in” support**: the app now declares the video file types it can read, so a video can be handed to it from Photos, Files, Safari, Mail or any other app, and it opens ready for frame marking
+- **AirDrop**: dropping a video on the device now offers Frame Extractor
+- **`frameextractor://` links**: shortcuts and automations can open a video with `frameextractor://open?video=<file URL>`
+- Incoming videos are copied into the app’s own storage before decoding, and stale copies are cleaned up automatically
+
+### 🎨 Rebuilt around Apple’s design guidance
+- **Dynamic Type**: every label now uses semantic text styles, so the whole app scales with the system text size instead of using fixed point sizes
+- **VoiceOver**: labels and hints on every icon-only control, spoken time codes for marked frames, and an adjustable timeline that can be scrubbed with swipe up/down
+- **Hit targets**: all controls now meet the 44×44 pt minimum, including the timeline flags
+- **Native structure**: the home screen, library and settings use `NavigationStack`, system sheets and a real grouped `Form` instead of hand-built bars and card stacks
+- **Standard materials**: decorative gradients were replaced with system materials, and toolbar actions were consolidated into menus
+- **Reduce Motion** is respected by every animation
+
+### 🔧 Fixed
+- The playback time observer is removed when the player closes, so reopening videos no longer leaks observers
+- Chrome and playback speed no longer start playback when changed while paused
+- Frame extraction no longer keeps a full-resolution still per frame in memory; the library holds thumbnails and fetches originals from Photos on demand
+- Adding frames to a custom album no longer fails silently — albums need read-write access, and frames fall back to the library with an explanation
+- Photo library authorization is requested once per run instead of once per frame
+- Extraction can be cancelled, and the result screen reports how many frames were saved or failed
+- The Settings screen shows the real bundle version (it previously displayed a stale hard-coded version)
+- Removed the leftover Share Extension build phases, target stubs and the unused App Group entitlement from the project
+
+### 🧪 Testing
+- Unit tests for time-code formatting, video import (type checks, name collisions, cleanup) and incoming hand-off handling
+- UI smoke tests for the empty state, Settings and the first-run tutorial
+- New `Tests` workflow runs both suites on GitHub Actions
+
 ## [1.5.1] - 2025-08-20
 
 ### 🗑️ Enhanced Delete Functionality
