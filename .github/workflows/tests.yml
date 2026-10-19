@@ -43,6 +43,7 @@ jobs:
           -scheme FrameExtractionTool \
           -destination "id=${{ steps.simulator.outputs.udid }}" \
           -only-testing:FrameExtractionToolTests \
+          -parallel-testing-enabled NO \
           | tee xcodebuild-test.log
 
     - name: Upload Logs
@@ -78,11 +79,14 @@ jobs:
     - name: Run UI Tests
       run: |
         set -o pipefail
+        # Serial, on one simulator: XCUITest clones simulators when the scheme
+        # allows parallel testing, and the clones starve on shared runners.
         xcodebuild test \
           -project FrameExtractionTool.xcodeproj \
           -scheme FrameExtractionTool \
           -destination "id=${{ steps.simulator.outputs.udid }}" \
           -only-testing:FrameExtractionToolUITests/FrameExtractionToolUITests \
+          -parallel-testing-enabled NO \
           | tee xcodebuild-ui-test.log
 
     - name: Upload Logs
