@@ -8,8 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.6.0] - 2026-10-20
 
 ### ✨ New: Send videos to the app from anywhere
-- **Share sheet and “Open in” support**: the app now declares the video file types it can read, so a video can be handed to it from Photos, Files, Safari, Mail or any other app, and it opens ready for frame marking
-- **AirDrop**: dropping a video on the device now offers Frame Extractor
+- **Share sheet and “Open in” support**: the app declares the video file types it can read, so a video can be handed to it from Files, Safari, Mail or any app that shares documents, and it opens ready for frame marking
+- **Share extension**: apps whose share sheet only lists extensions — Photos, Messages, and others — now offer Frame Extractor too. The extension files the video in a shared App Group container and the app imports it as soon as it becomes active
 - **`frameextractor://` links**: shortcuts and automations can open a video with `frameextractor://open?video=<file URL>`
 - Incoming videos are copied into the app’s own storage before decoding, and stale copies are cleaned up automatically
 

@@ -13,6 +13,7 @@ struct ContentView: View {
     @Environment(VideoManager.self) private var videoManager
     @Environment(IncomingVideoHandler.self) private var incoming
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.scenePhase) private var scenePhase
 
     private enum Route: Hashable {
         case library
@@ -75,6 +76,16 @@ struct ContentView: View {
             OnboardingView { isShowingTutorial = false }
         }
         .overlay { importOverlay }
+        .task {
+            // Videos the share extension filed while the app was not running.
+            await incoming.importSharedVideos()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Sharing happens in another app, so the app is usually already
+            // running when its share extension has something to hand over.
+            guard phase == .active else { return }
+            Task { await incoming.importSharedVideos() }
+        }
         .onChange(of: incoming.readyVideoURL) { _, url in
             open(url)
         }

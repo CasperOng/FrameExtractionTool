@@ -138,10 +138,13 @@ The feed updates itself from the newest build, so this is the quickest way to ru
 
 You do not have to pick a video inside the app first — Frame Extractor can be handed a video:
 
-- **Share sheet** — in Photos, Files, Safari or any other app, tap Share and choose **Frame Extractor**. The video is imported and opens ready to mark. (If it is not listed, tap **Edit Actions…** in the share sheet and turn it on.)
-- **Open in / Open with** — in Files, touch and hold a video and choose **Open With → Frame Extraction Tool**, or double-click it on a device with a keyboard.
-- **AirDrop** — AirDrop a video to your iPhone or iPad and choose Frame Extractor.
+- **Share sheet (Photos, iMessage, Files, Safari, any app)** — tap Share and choose **Frame Extractor**. A short confirmation appears, the video is filed, and the app imports it as soon as you open it. If it is not listed, tap **Edit Actions…**/**More** in the share sheet and turn it on.
+- **Open in / Open with** — in Files, share a video and choose **Frame Extractor**, or double-click it on a device with a keyboard. This route launches the app straight into the player.
 - **Links and Shortcuts** — open `frameextractor://` to launch the app, or `frameextractor://open?video=<percent-encoded file URL>` to open a specific video. In Shortcuts, use **Open URLs** with that link.
+
+> **Why the share extension can't jump straight into the app:** iOS only supports a share extension opening its containing app through the Today and iMessage extension points, so the extension copies the video into a shared container and the app collects it the moment it becomes active. The confirmation sheet says so too.
+
+> **Signing note:** the app and its share extension exchange files through the App Group `group.caspernyong.FrameExtractionTool`. A build only works if the provisioning profile used to sign it authorises that group (Xcode's automatic signing does). If the group is missing, the extension says so instead of failing silently, and every other way of getting a video in still works.
 
 ## Architecture
 

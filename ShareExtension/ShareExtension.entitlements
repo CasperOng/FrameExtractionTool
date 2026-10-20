@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  The share extension and the app share this group so the extension can hand
+	  a video over. Both entitlements files must list the same group, and the
+	  provisioning profile used to sign them must authorise it.
+	-->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.caspernyong.FrameExtractionTool</string>
+	</array>
+</dict>
+</plist>

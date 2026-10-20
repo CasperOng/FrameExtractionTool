@@ -7,9 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5A1E000C2E4D13EA007B0BF2 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5A1E00062E4D13EA007B0BF2 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		5A1E000D2E4D13EA007B0BF2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 42EC56F12E4D13EA007B0BF2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5A1E00012E4D13EA007B0BF2;
+			remoteInfo = ShareExtension;
+		};
 		42EC57072E4D13EB007B0BF2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 42EC56F12E4D13EA007B0BF2 /* Project object */;
@@ -26,7 +34,22 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		5A1E000B2E4D13EA007B0BF2 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				5A1E000C2E4D13EA007B0BF2 /* ShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		5A1E00062E4D13EA007B0BF2 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		3F4F741A5ACD4DEB6F53FEDC /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		42EC56F92E4D13EA007B0BF2 /* FrameExtractionTool.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FrameExtractionTool.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		42EC57062E4D13EB007B0BF2 /* FrameExtractionToolTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FrameExtractionToolTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -34,6 +57,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5A1E00072E4D13EA007B0BF2 /* Exceptions for "ShareExtension" folder in "ShareExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5A1E00012E4D13EA007B0BF2 /* ShareExtension */;
+		};
 		42EC57012E4D13EA007B0BF2 /* Exceptions for "FrameExtractionTool" folder in "FrameExtractionTool" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -44,6 +74,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		5A1E00052E4D13EA007B0BF2 /* ShareExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5A1E00072E4D13EA007B0BF2 /* Exceptions for "ShareExtension" folder in "ShareExtension" target */,
+			);
+			path = ShareExtension;
+			sourceTree = "<group>";
+		};
 		42EC56FB2E4D13EA007B0BF2 /* FrameExtractionTool */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -69,6 +107,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		5A1E00092E4D13EA007B0BF2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		42EC56F62E4D13EA007B0BF2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -97,6 +142,7 @@
 			isa = PBXGroup;
 			children = (
 				42EC56FB2E4D13EA007B0BF2 /* FrameExtractionTool */,
+				5A1E00052E4D13EA007B0BF2 /* ShareExtension */,
 				42EC57092E4D13EB007B0BF2 /* FrameExtractionToolTests */,
 				42EC57132E4D13EB007B0BF2 /* FrameExtractionToolUITests */,
 				42EC56FA2E4D13EA007B0BF2 /* Products */,
@@ -108,6 +154,7 @@
 			isa = PBXGroup;
 			children = (
 				42EC56F92E4D13EA007B0BF2 /* FrameExtractionTool.app */,
+				5A1E00062E4D13EA007B0BF2 /* ShareExtension.appex */,
 				42EC57062E4D13EB007B0BF2 /* FrameExtractionToolTests.xctest */,
 				42EC57102E4D13EB007B0BF2 /* FrameExtractionToolUITests.xctest */,
 			);
@@ -140,10 +187,12 @@
 				42EC56F52E4D13EA007B0BF2 /* Sources */,
 				42EC56F62E4D13EA007B0BF2 /* Frameworks */,
 				42EC56F72E4D13EA007B0BF2 /* Resources */,
+				5A1E000B2E4D13EA007B0BF2 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				5A1E000E2E4D13EA007B0BF2 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				42EC56FB2E4D13EA007B0BF2 /* FrameExtractionTool */,
@@ -195,6 +244,26 @@
 			productReference = 42EC57102E4D13EB007B0BF2 /* FrameExtractionToolUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		5A1E00012E4D13EA007B0BF2 /* ShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5A1E00022E4D13EA007B0BF2 /* Build configuration list for PBXNativeTarget "ShareExtension" */;
+			buildPhases = (
+				5A1E00082E4D13EA007B0BF2 /* Sources */,
+				5A1E00092E4D13EA007B0BF2 /* Frameworks */,
+				5A1E000A2E4D13EA007B0BF2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5A1E00052E4D13EA007B0BF2 /* ShareExtension */,
+			);
+			name = ShareExtension;
+			productName = ShareExtension;
+			productReference = 5A1E00062E4D13EA007B0BF2 /* ShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -207,6 +276,9 @@
 				TargetAttributes = {
 					42EC56F82E4D13EA007B0BF2 = {
 						CreatedOnToolsVersion = 26.0;
+					};
+					5A1E00012E4D13EA007B0BF2 = {
+						CreatedOnToolsVersion = 27.0;
 					};
 					42EC57052E4D13EB007B0BF2 = {
 						CreatedOnToolsVersion = 26.0;
@@ -233,6 +305,7 @@
 			projectRoot = "";
 			targets = (
 				42EC56F82E4D13EA007B0BF2 /* FrameExtractionTool */,
+				5A1E00012E4D13EA007B0BF2 /* ShareExtension */,
 				42EC57052E4D13EB007B0BF2 /* FrameExtractionToolTests */,
 				42EC570F2E4D13EB007B0BF2 /* FrameExtractionToolUITests */,
 			);
@@ -240,6 +313,13 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		5A1E000A2E4D13EA007B0BF2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		42EC56F72E4D13EA007B0BF2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -264,6 +344,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		5A1E00082E4D13EA007B0BF2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		42EC56F52E4D13EA007B0BF2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -288,6 +375,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		5A1E000E2E4D13EA007B0BF2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5A1E00012E4D13EA007B0BF2 /* ShareExtension */;
+			targetProxy = 5A1E000D2E4D13EA007B0BF2 /* PBXContainerItemProxy */;
+		};
 		42EC57082E4D13EB007B0BF2 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 42EC56F82E4D13EA007B0BF2 /* FrameExtractionTool */;
@@ -428,6 +520,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = FrameExtractionTool/FrameExtractionTool.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P4689DSR8M;
@@ -468,6 +561,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = FrameExtractionTool/FrameExtractionTool.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P4689DSR8M;
@@ -586,6 +680,66 @@
 			};
 			name = Release;
 		};
+		5A1E00032E4D13EA007B0BF2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P4689DSR8M;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Frame Extractor";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.6.0;
+				PRODUCT_BUNDLE_IDENTIFIER = caspernyong.FrameExtractionTool.ShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5A1E00042E4D13EA007B0BF2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P4689DSR8M;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Frame Extractor";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.6.0;
+				PRODUCT_BUNDLE_IDENTIFIER = caspernyong.FrameExtractionTool.ShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -621,6 +775,15 @@
 			buildConfigurations = (
 				42EC57212E4D13EB007B0BF2 /* Debug */,
 				42EC57222E4D13EB007B0BF2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5A1E00022E4D13EA007B0BF2 /* Build configuration list for PBXNativeTarget "ShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5A1E00032E4D13EA007B0BF2 /* Debug */,
+				5A1E00042E4D13EA007B0BF2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

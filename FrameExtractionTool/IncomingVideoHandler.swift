@@ -119,6 +119,47 @@ final class IncomingVideoHandler {
         readyVideoURL = nil
     }
 
+    // MARK: - Share extension hand-off
+
+    /// Collects videos the share extension filed while the app was closed or in
+    /// the background, and publishes the newest one for the player.
+    ///
+    /// - Returns: the most recently imported video, if there was one.
+    @discardableResult
+    func importSharedVideos(from directory: URL? = VideoInbox.directory) async -> URL? {
+        let pending = VideoInbox.pendingVideos(in: directory)
+        guard !pending.isEmpty else { return nil }
+
+        logger.info("Collecting \(pending.count, privacy: .public) video(s) from the share extension")
+        var newest: URL?
+
+        for file in pending {
+            let displayName = VideoInbox.displayName(for: file)
+            do {
+                let imported = try await Task.detached(priority: .userInitiated) {
+                    try VideoStore.importVideo(from: file, originalName: displayName)
+                }.value
+                VideoInbox.remove(file)
+                newest = imported
+            } catch {
+                logger.error("Could not collect a shared video: \(error.localizedDescription, privacy: .public)")
+                // Something the app can never use would be retried on every launch.
+                if let storeError = error as? VideoStore.StoreError, case .unsupportedType = storeError {
+                    VideoInbox.remove(file)
+                }
+                if let failure = error as? LocalizedError, let message = failure.errorDescription {
+                    state = .failed(message: message)
+                }
+            }
+        }
+
+        if let newest {
+            state = .idle
+            readyVideoURL = newest
+        }
+        return newest
+    }
+
     /// Reports a problem from any other way a video can enter the app, so all
     /// hand-offs surface the same alert.
     func reportFailure(_ message: String) {

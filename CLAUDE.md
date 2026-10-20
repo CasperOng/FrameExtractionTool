@@ -47,6 +47,8 @@ xcodebuild -project FrameExtractionTool.xcodeproj -scheme FrameExtractionTool -c
 
 **VideoStore** (`VideoStore.swift`): file storage for imported videos (`Application Support/ImportedVideos`). Validates the file type with `UTType`, copies videos out of the sender's sandbox, keeps names unique, and clears out stale imports and `Documents/Inbox` leftovers at launch.
 
+**ShareExtension** (`ShareExtension/`): a share extension for apps whose share sheet only lists extensions (Photos, Messages). A share extension cannot open its containing app, so `VideoInbox.swift` files the video in the shared App Group container and the app collects it when it becomes active. `ShareViewController.swift` holds the receiver and its short confirmation sheet.
+
 **AppSettings** (`AppSettings.swift`): defaults keys, default registration, and bundle version helpers.
 
 ### UI Views
@@ -94,7 +96,8 @@ It declares:
 
 Delivery paths:
 
-- **Open in / share sheet / AirDrop**: `application(_:open:options:)` on `AppDelegate` (SwiftUI's `onOpenURL` is only documented for universal links and custom schemes, so the delegate is the reliable path for files) — `onOpenURL` is also wired up and duplicates are filtered in `IncomingVideoHandler`
+- **Open in / Files / share sheet of apps that share documents**: `application(_:open:options:)` on `AppDelegate` (SwiftUI's `onOpenURL` is only documented for universal links and custom schemes, so the delegate is the reliable path for files) — `onOpenURL` is also wired up and duplicates are filtered in `IncomingVideoHandler`
+- **Apps whose share sheet only lists extensions (Photos, Messages)**: the `ShareExtension` target. A share extension cannot open its containing app — `NSExtensionContext.open(_:completionHandler:)` is documented as supported by the Today and iMessage extension points only — so it copies the video into the shared App Group container (`VideoInbox`), says so in a short confirmation sheet, and the app collects it when it becomes active (`ContentView` scene phase → `IncomingVideoHandler.importSharedVideos`)
 - **Photo library**: `PhotosPicker` in `ContentView`, imported through `MovieFile`
 - Everything ends up in `VideoStore`, and `IncomingVideoHandler.readyVideoURL` opens the player
 
@@ -102,7 +105,9 @@ Notes:
 
 - The file hand-off is asynchronous: the UI shows a "Preparing Video" overlay while a large video is copied
 - Unsuitable files (a PDF opened with the app, for example) surface a readable alert instead of failing silently
-- `frameMarkingHelp` content lives in `FrameMarkingHelpView.swift`; tests for import and URL handling live in `FrameExtractionToolTests` — add cases there rather than testing through the UI
+- `VideoInbox.swift` exists in both targets on purpose — they are separate containers and cannot share code without extra target membership. The App Group identifier and folder name must match, and the group must be in both entitlements files
+- The App Group needs a provisioning profile that authorises it; without one the extension reports the problem instead of failing silently
+- Tests for the hand-off live in `FrameExtractionToolTests/SharedInboxTests.swift` and drive the inbox directly, so they need no extension or device
 
 ## Important Notes
 
