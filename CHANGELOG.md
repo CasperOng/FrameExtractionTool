@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Settings screen shows the real bundle version (it previously displayed a stale hard-coded version)
 - Removed the leftover Share Extension build phases, target stubs and the unused App Group entitlement from the project
 
+### 🖋️ Attribution
+- The developer credit from [casperong.is-a.dev](https://casperong.is-a.dev) and the Visitor Connect apps — signature, name and credit line, linking to the developer's site — now closes the home screen and the Settings screen
+- VoiceOver reads the credit and describes where the link goes, and the link keeps a 44 pt hit region
+
 ### 🧪 Testing
 - Unit tests for time-code formatting, video import (type checks, name collisions, cleanup) and incoming hand-off handling
 - UI smoke tests for the empty state, Settings and the first-run tutorial

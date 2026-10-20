@@ -71,7 +71,11 @@ struct SettingsView: View {
             } header: {
                 Text("About")
             } footer: {
-                Text("Frame Extractor reads frames straight from the video with AVFoundation, so every frame keeps the resolution of the original file. Processing happens on this device.")
+                VStack(spacing: AppTheme.Spacing.lg) {
+                    Text("Frame Extractor reads frames straight from the video with AVFoundation, so every frame keeps the resolution of the original file. Processing happens on this device.")
+
+                    DeveloperCreditView(signatureWidth: 156)
+                }
             }
         }
         .navigationTitle("Settings")

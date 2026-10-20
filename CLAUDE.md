@@ -59,6 +59,7 @@ xcodebuild -project FrameExtractionTool.xcodeproj -scheme FrameExtractionTool -c
 - `FrameLibraryView.swift` — grid of extracted frames, selection, deletion, full-screen detail with zoom and share
 - `ExtractionProgressView.swift` — progress, cancel, and the result summary
 - `SettingsView.swift` — grouped `Form` with haptics, album, tutorial and version
+- `DeveloperCreditView.swift` — signature, name and credit line linking to casperong.is-a.dev, shown on the home screen and in Settings
 - `OnboardingView.swift` — first-run tour (also shown from Settings)
 - `FrameMarkingHelpView.swift` — short instructions inside the player
 - `DesignSystem.swift` — `AppTheme` tokens (semantic typography, spacing, motion), press states, haptics

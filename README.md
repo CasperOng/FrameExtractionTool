@@ -194,4 +194,6 @@ For questions, issues, or feature requests, please open an issue in this reposit
 
 ---
 
-Built with ❤️ by Casper N.Y. Ong using SwiftUI, GitHub Copilot and AVFoundation
+Built with ❤️ by **Casper N.Y. Ong** using SwiftUI, GitHub Copilot and AVFoundation — [casperong.is-a.dev](https://casperong.is-a.dev)
+
+The same credit, signature and all, closes the app's home screen and Settings screen.

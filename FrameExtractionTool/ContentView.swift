@@ -12,6 +12,7 @@ struct ContentView: View {
 
     @Environment(VideoManager.self) private var videoManager
     @Environment(IncomingVideoHandler.self) private var incoming
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private enum Route: Hashable {
         case library
@@ -108,19 +109,30 @@ struct ContentView: View {
     }
 
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label("No Frames Yet", systemImage: "play.rectangle.on.rectangle")
-        } description: {
-            Text("Choose a video from your library to mark frames, or share a video to Frame Extractor from another app.")
-        } actions: {
-            Button {
-                isChoosingVideo = true
-            } label: {
-                Text("Choose Video")
-                    .frame(maxWidth: 240)
+        VStack(spacing: 0) {
+            ContentUnavailableView {
+                Label("No Frames Yet", systemImage: "play.rectangle.on.rectangle")
+            } description: {
+                Text("Choose a video from your library to mark frames, or share a video to Frame Extractor from another app.")
+            } actions: {
+                Button {
+                    isChoosingVideo = true
+                } label: {
+                    Text("Choose Video")
+                        .frame(maxWidth: 240)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+
+            // The developer credit sits where the app is first seen, as it does
+            // on casperong.is-a.dev and in the Visitor Connect apps. At the
+            // largest text sizes there is no room left for it on this screen, so
+            // it stays reachable in Settings instead of crowding the controls.
+            if !dynamicTypeSize.isAccessibilitySize {
+                DeveloperCreditView(signatureWidth: 140)
+                    .padding(.bottom, AppTheme.Spacing.xl)
+            }
         }
     }
 
