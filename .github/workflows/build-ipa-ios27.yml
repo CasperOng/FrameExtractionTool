@@ -86,6 +86,14 @@ jobs:
         rm -rf build/
         mkdir -p build/
 
+    - name: Update Build Number in Xcode Project
+      run: |
+        BUILD_NUMBER=$(git rev-list --count HEAD)
+        echo "Setting build number to: $BUILD_NUMBER"
+
+        # Update all occurrences of CURRENT_PROJECT_VERSION
+        sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/g" FrameExtractionTool.xcodeproj/project.pbxproj
+
     - name: Build Project with Latest SDK
       run: |
         set -o pipefail
