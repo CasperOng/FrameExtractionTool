@@ -54,6 +54,9 @@ enum VideoInbox {
     ///
     /// Call this while the source URL is still valid — `loadFileRepresentation`
     /// only keeps its file for the lifetime of its completion handler.
+    ///
+    /// Filed as `<identifier>~<name>`: the separator is a character `safeName`
+    /// never leaves in a name, so the app can split the two reliably.
     @discardableResult
     static func file(_ source: URL, displayName: String) throws -> URL {
         guard let directory else { throw InboxError.unavailable }
@@ -64,7 +67,8 @@ enum VideoInbox {
 
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            let destination = directory.appending(path: "\(UUID().uuidString)-\(safeName(name))")
+            let identifier = UUID().uuidString.replacingOccurrences(of: "-", with: "")
+            let destination = directory.appending(path: "\(identifier)~\(safeName(name))")
             try FileManager.default.copyItem(at: source, to: destination)
             return destination
         } catch let error as InboxError {

@@ -48,10 +48,10 @@ enum VideoInbox {
         try? FileManager.default.removeItem(at: url)
     }
 
-    /// Filed videos are named `<identifier>-<original name>`.
+    /// Filed videos are named `<identifier>~<original name>`.
     nonisolated static func displayName(for url: URL) -> String {
         let name = url.lastPathComponent
-        guard let separator = name.firstIndex(of: "-") else { return name }
+        guard let separator = name.firstIndex(of: "~") else { return name }
         let remainder = name[name.index(after: separator)...]
         return remainder.isEmpty ? name : String(remainder)
     }

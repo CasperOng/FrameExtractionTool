@@ -140,14 +140,14 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: FrameExtractionTool-iOS27-v${{ steps.app_version.outputs.app_version }}-build${{ steps.app_version.outputs.build_number }}-unsigned
-        path: build/FrameExtractionTool-iOS27-unsigned.ipa
+        path: build/FrameExtractionTool-Latest-unsigned.ipa
         retention-days: 30
 
     - name: Upload Archive Artifact
       uses: actions/upload-artifact@v4
       with:
         name: FrameExtractionTool-iOS27-archive-v${{ steps.app_version.outputs.app_version }}
-        path: build/FrameExtractionTool-iOS27.xcarchive
+        path: build/FrameExtractionTool-Latest.xcarchive
         retention-days: 7
 
     - name: Generate Build Summary

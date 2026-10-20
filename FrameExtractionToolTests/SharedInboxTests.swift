@@ -36,7 +36,7 @@ struct SharedInboxTests {
     func importsFiledVideo() async throws {
         let inbox = try makeInbox()
         defer { try? FileManager.default.removeItem(at: inbox) }
-        let filed = try file(named: "\(UUID().uuidString)-Holiday Clip.mov", in: inbox)
+        let filed = try file(named: "\(identifier())~Holiday Clip.mov", in: inbox)
 
         let handler = IncomingVideoHandler()
         let imported = try #require(await handler.importSharedVideos(from: inbox))
@@ -53,8 +53,8 @@ struct SharedInboxTests {
     func publishesNewestVideo() async throws {
         let inbox = try makeInbox()
         defer { try? FileManager.default.removeItem(at: inbox) }
-        let older = try file(named: "1111-Older.mov", in: inbox, modified: Date().addingTimeInterval(-600))
-        let newer = try file(named: "2222-Newer.mov", in: inbox)
+        let older = try file(named: "1111~Older.mov", in: inbox, modified: Date().addingTimeInterval(-600))
+        let newer = try file(named: "2222~Newer.mov", in: inbox)
 
         let handler = IncomingVideoHandler()
         let imported = try #require(await handler.importSharedVideos(from: inbox))
@@ -82,7 +82,7 @@ struct SharedInboxTests {
     func dropsUnsupportedFiles() async throws {
         let inbox = try makeInbox()
         defer { try? FileManager.default.removeItem(at: inbox) }
-        let document = try file(named: "3333-notes.txt", in: inbox)
+        let document = try file(named: "3333~notes.txt", in: inbox)
 
         let handler = IncomingVideoHandler()
         #expect(await handler.importSharedVideos(from: inbox) == nil)
@@ -98,7 +98,14 @@ struct SharedInboxTests {
 
     @Test("The display name drops the identifier the extension prefixes")
     func displayNameStripsIdentifier() {
-        #expect(VideoInbox.displayName(for: URL(fileURLWithPath: "/tmp/A1B2-Holiday Clip.mov")) == "Holiday Clip.mov")
+        #expect(VideoInbox.displayName(for: URL(fileURLWithPath: "/tmp/1C9E1F0A4B5D~Holiday Clip.mov")) == "Holiday Clip.mov")
         #expect(VideoInbox.displayName(for: URL(fileURLWithPath: "/tmp/Holiday.mov")) == "Holiday.mov")
+        // A name that contains the separator is left alone rather than cut short.
+        #expect(VideoInbox.displayName(for: URL(fileURLWithPath: "/tmp/~Holiday.mov")) == "Holiday.mov")
+    }
+
+    /// The identifier the extension puts in front of the file name.
+    private func identifier() -> String {
+        UUID().uuidString.replacingOccurrences(of: "-", with: "")
     }
 }
