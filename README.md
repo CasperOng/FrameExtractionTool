@@ -138,13 +138,16 @@ The feed updates itself from the newest build, so this is the quickest way to ru
 
 You do not have to pick a video inside the app first — Frame Extractor can be handed a video:
 
-- **Share sheet (Photos, iMessage, Files, Safari, any app)** — tap Share and choose **Frame Extractor**. A short confirmation appears, the video is filed, and the app imports it as soon as you open it. If it is not listed, tap **Edit Actions…**/**More** in the share sheet and turn it on.
+- **Share sheet** — in Photos, Messages, Files, Safari or any other app, tap Share and choose **Frame Extractor**.
+  - If the build was signed with the App Group the extension uses, the video is handed over automatically: open the app and the player is already showing it.
+  - Otherwise (self-signed builds, including Feather) the sheet offers **Save to Frame Extractor…**. Save the video into **On My iPhone → Frame Extraction Tool**, then open the app — it imports the video the moment it comes to the foreground.
 - **Open in / Open with** — in Files, share a video and choose **Frame Extractor**, or double-click it on a device with a keyboard. This route launches the app straight into the player.
+- **Drop it in the app's folder** — with file sharing on, any video saved to **On My iPhone → Frame Extraction Tool** (in Files) is picked up next time the app opens.
 - **Links and Shortcuts** — open `frameextractor://` to launch the app, or `frameextractor://open?video=<percent-encoded file URL>` to open a specific video. In Shortcuts, use **Open URLs** with that link.
 
-> **Why the share extension can't jump straight into the app:** iOS only supports a share extension opening its containing app through the Today and iMessage extension points, so the extension copies the video into a shared container and the app collects it the moment it becomes active. The confirmation sheet says so too.
+> **Why the share extension can't jump straight into the app:** iOS only supports a share extension opening its containing app through the Today and iMessage extension points, so the extension has to hand the file over through a container and the app collects it when it becomes active. The confirmation sheet says which route is being used.
 
-> **Signing note:** the app and its share extension exchange files through the App Group `group.caspernyong.FrameExtractionTool`. A build only works if the provisioning profile used to sign it authorises that group (Xcode's automatic signing does). If the group is missing, the extension says so instead of failing silently, and every other way of getting a video in still works.
+> **Signing note:** the automatic hand-off relies on the App Group `group.caspernyong.FrameExtractionTool`, which must be authorised by the provisioning profile that signs the app and its extension. Xcode's automatic signing with a team that has the App Groups capability does this for you; personal teams cannot, which is why the Files route exists.
 
 ## Architecture
 

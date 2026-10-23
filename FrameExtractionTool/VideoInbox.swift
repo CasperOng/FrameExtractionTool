@@ -25,6 +25,22 @@ enum VideoInbox {
             .appending(path: folderName, directoryHint: .isDirectory)
     }
 
+    /// The app's own Documents folder, which is also visible in Files ("On My
+    /// iPhone → Frame Extraction Tool") because the app enables file sharing.
+    nonisolated static var documentsDirectory: URL? {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+    }
+
+    /// Every place a hand-off can land.
+    ///
+    /// The shared container only works when the build is signed with an App
+    /// Group, which personal signing profiles cannot have. The Documents folder
+    /// covers those builds: the share extension offers to save the video there
+    /// through Files, and anything the user drops in by hand is picked up too.
+    nonisolated static var handOffDirectories: [URL] {
+        [directory, documentsDirectory].compactMap { $0 }
+    }
+
     /// Videos the share extension left behind, oldest first.
     nonisolated static func pendingVideos(in directory: URL? = VideoInbox.directory) -> [URL] {
         guard let directory,

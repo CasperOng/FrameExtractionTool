@@ -42,10 +42,18 @@
 	<!--
 	  The app copies incoming videos into its own container before decoding them
 	  (frame extraction needs a stable file that stays readable for the whole
-	  editing session), so it does not open documents in place.
+	  editing session), so the original file is only read once.
+
+	  Opening in place is on for a different reason: together with
+	  UIFileSharingEnabled it puts the app's Documents folder in the Files app,
+	  which is how a video reaches the app when the build is signed without the
+	  App Group that the share extension would otherwise use.
 	-->
 	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<false/>
+	<true/>
+	<!-- Shows "On My iPhone → Frame Extraction Tool" in Files. -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
 	<!-- Custom scheme, so Shortcuts, automations and links can hand over a video. -->
 	<key>CFBundleURLTypes</key>
 	<array>

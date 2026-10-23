@@ -121,16 +121,24 @@ final class IncomingVideoHandler {
 
     // MARK: - Share extension hand-off
 
-    /// Collects videos the share extension filed while the app was closed or in
-    /// the background, and publishes the newest one for the player.
+    /// Collects videos handed over while the app was closed or in the background
+    /// and publishes the newest one for the player.
+    ///
+    /// Two places are watched: the share extension's App Group container (only
+    /// usable when the build is signed with an App Group) and the app's own
+    /// Documents folder, which is visible in Files as "On My iPhone → Frame
+    /// Extraction Tool" and needs no entitlement.
     ///
     /// - Returns: the most recently imported video, if there was one.
     @discardableResult
-    func importSharedVideos(from directory: URL? = VideoInbox.directory) async -> URL? {
-        let pending = VideoInbox.pendingVideos(in: directory)
+    func importHandedOffVideos(from directories: [URL] = VideoInbox.handOffDirectories) async -> URL? {
+        // Only videos are taken; anything else in those folders belongs to the user.
+        let pending = directories
+            .flatMap { VideoInbox.pendingVideos(in: $0) }
+            .filter { VideoStore.isSupportedVideo($0) }
         guard !pending.isEmpty else { return nil }
 
-        logger.info("Collecting \(pending.count, privacy: .public) video(s) from the share extension")
+        logger.info("Collecting \(pending.count, privacy: .public) handed-off video(s)")
         var newest: URL?
 
         for file in pending {
@@ -142,7 +150,7 @@ final class IncomingVideoHandler {
                 VideoInbox.remove(file)
                 newest = imported
             } catch {
-                logger.error("Could not collect a shared video: \(error.localizedDescription, privacy: .public)")
+                logger.error("Could not collect a handed-off video: \(error.localizedDescription, privacy: .public)")
                 // Something the app can never use would be retried on every launch.
                 if let storeError = error as? VideoStore.StoreError, case .unsupportedType = storeError {
                     VideoInbox.remove(file)

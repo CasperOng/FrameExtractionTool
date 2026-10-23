@@ -39,7 +39,7 @@ struct SharedInboxTests {
         let filed = try file(named: "\(identifier())~Holiday Clip.mov", in: inbox)
 
         let handler = IncomingVideoHandler()
-        let imported = try #require(await handler.importSharedVideos(from: inbox))
+        let imported = try #require(await handler.importHandedOffVideos(from: [inbox]))
         defer { try? FileManager.default.removeItem(at: imported) }
 
         #expect(imported.deletingLastPathComponent().path == VideoStore.directory.path)
@@ -57,7 +57,7 @@ struct SharedInboxTests {
         let newer = try file(named: "2222~Newer.mov", in: inbox)
 
         let handler = IncomingVideoHandler()
-        let imported = try #require(await handler.importSharedVideos(from: inbox))
+        let imported = try #require(await handler.importHandedOffVideos(from: [inbox]))
         defer { try? FileManager.default.removeItem(at: imported) }
 
         #expect(imported.lastPathComponent.hasPrefix("Newer"))
@@ -73,27 +73,36 @@ struct SharedInboxTests {
         defer { try? FileManager.default.removeItem(at: inbox) }
 
         let handler = IncomingVideoHandler()
-        #expect(await handler.importSharedVideos(from: inbox) == nil)
+        #expect(await handler.importHandedOffVideos(from: [inbox]) == nil)
         #expect(handler.readyVideoURL == nil)
         #expect(handler.state == .idle)
     }
 
-    @Test("Something the app can never open is dropped instead of retried forever")
-    func dropsUnsupportedFiles() async throws {
+    @Test("Files the app cannot use are ignored, and left where they are")
+    func ignoresOtherFiles() async throws {
         let inbox = try makeInbox()
         defer { try? FileManager.default.removeItem(at: inbox) }
         let document = try file(named: "3333~notes.txt", in: inbox)
 
         let handler = IncomingVideoHandler()
-        #expect(await handler.importSharedVideos(from: inbox) == nil)
-        #expect(!FileManager.default.fileExists(atPath: document.path))
+        #expect(await handler.importHandedOffVideos(from: [inbox]) == nil)
+        #expect(FileManager.default.fileExists(atPath: document.path))
         #expect(handler.readyVideoURL == nil)
+        #expect(handler.state == .idle)
+    }
 
-        guard case .failed(let message) = handler.state else {
-            Issue.record("Expected the failure to be reported, got \(handler.state)")
-            return
-        }
-        #expect(message.contains("notes.txt"))
+    @Test("A video dropped into the app's Documents folder is picked up too")
+    func importsFromDocumentsFolder() async throws {
+        let documents = try makeInbox()
+        defer { try? FileManager.default.removeItem(at: documents) }
+        let dropped = try file(named: "Dropped.mov", in: documents)
+
+        let handler = IncomingVideoHandler()
+        let imported = try #require(await handler.importHandedOffVideos(from: [documents]))
+        defer { try? FileManager.default.removeItem(at: imported) }
+
+        #expect(imported.lastPathComponent.hasPrefix("Dropped"))
+        #expect(!FileManager.default.fileExists(atPath: dropped.path))
     }
 
     @Test("The display name drops the identifier the extension prefixes")

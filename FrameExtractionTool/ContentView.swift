@@ -78,13 +78,13 @@ struct ContentView: View {
         .overlay { importOverlay }
         .task {
             // Videos the share extension filed while the app was not running.
-            await incoming.importSharedVideos()
+            await incoming.importHandedOffVideos()
         }
         .onChange(of: scenePhase) { _, phase in
             // Sharing happens in another app, so the app is usually already
             // running when its share extension has something to hand over.
             guard phase == .active else { return }
-            Task { await incoming.importSharedVideos() }
+            Task { await incoming.importHandedOffVideos() }
         }
         .onChange(of: incoming.readyVideoURL) { _, url in
             open(url)

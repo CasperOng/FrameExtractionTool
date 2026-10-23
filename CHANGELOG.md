@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ✨ New: Send videos to the app from anywhere
 - **Share sheet and “Open in” support**: the app declares the video file types it can read, so a video can be handed to it from Files, Safari, Mail or any app that shares documents, and it opens ready for frame marking
-- **Share extension**: apps whose share sheet only lists extensions — Photos, Messages, and others — now offer Frame Extractor too. The extension files the video in a shared App Group container and the app imports it as soon as it becomes active
+- **Share extension**: apps whose share sheet only lists extensions — Photos, Messages, and others — now offer Frame Extractor too. It hands the video over through a shared App Group container when the signing profile allows one, and otherwise offers to save it into the app’s folder in Files, which the app imports automatically
+- **Files folder**: the app's Documents folder is visible as “On My iPhone → Frame Extraction Tool”, and any video dropped there is imported the next time the app opens
 - **`frameextractor://` links**: shortcuts and automations can open a video with `frameextractor://open?video=<file URL>`
 - Incoming videos are copied into the app’s own storage before decoding, and stale copies are cleaned up automatically
 

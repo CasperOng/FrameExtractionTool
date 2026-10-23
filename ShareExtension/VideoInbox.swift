@@ -80,7 +80,7 @@ enum VideoInbox {
 
     /// File names arrive from other apps, so keep them to characters that are
     /// welcome on disk.
-    private static func safeName(_ name: String) -> String {
+    static func safeName(_ name: String) -> String {
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_. "))
         let cleaned = name.unicodeScalars
             .map { allowed.contains($0) ? Character($0) : "-" }

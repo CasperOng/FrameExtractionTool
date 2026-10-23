@@ -97,7 +97,11 @@ It declares:
 Delivery paths:
 
 - **Open in / Files / share sheet of apps that share documents**: `application(_:open:options:)` on `AppDelegate` (SwiftUI's `onOpenURL` is only documented for universal links and custom schemes, so the delegate is the reliable path for files) — `onOpenURL` is also wired up and duplicates are filtered in `IncomingVideoHandler`
-- **Apps whose share sheet only lists extensions (Photos, Messages)**: the `ShareExtension` target. A share extension cannot open its containing app — `NSExtensionContext.open(_:completionHandler:)` is documented as supported by the Today and iMessage extension points only — so it copies the video into the shared App Group container (`VideoInbox`), says so in a short confirmation sheet, and the app collects it when it becomes active (`ContentView` scene phase → `IncomingVideoHandler.importSharedVideos`)
+- **Apps whose share sheet only lists extensions (Photos, Messages)**: the `ShareExtension` target. A share extension cannot open its containing app — `NSExtensionContext.open(_:completionHandler:)` is documented as supported by the Today and iMessage extension points only — so it hands the file over instead, in one of two ways:
+  1. the shared App Group container (`VideoInbox`), which is automatic but needs a signing profile that authorises the group — personal/free profiles cannot have App Groups;
+  2. the app's Documents folder through Files (`UIDocumentPickerViewController` export), which needs no entitlement, so self-signed/Feather builds still work. `UIFileSharingEnabled` + `LSSupportsOpeningDocumentsInPlace` put that folder in Files.
+  Either way `IncomingVideoHandler.importHandedOffVideos(from:)` collects it when the app becomes active, and the player opens it
+- **Anything dropped into the app's Documents folder** is collected by the same scan; non-video files there are left untouched
 - **Photo library**: `PhotosPicker` in `ContentView`, imported through `MovieFile`
 - Everything ends up in `VideoStore`, and `IncomingVideoHandler.readyVideoURL` opens the player
 
