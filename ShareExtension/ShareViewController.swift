@@ -125,7 +125,7 @@ final class ShareReceiver {
             // Signed without the App Group: fall back to the app's Files folder.
             do {
                 let copy = try await withSourceFile(of: provider) { url, suggestedName in
-                    try copyToTemporaryFile(url, named: suggestedName.isEmpty ? url.lastPathComponent : suggestedName)
+                    try self.copyToTemporaryFile(url, named: suggestedName.isEmpty ? url.lastPathComponent : suggestedName)
                 }
                 pendingFileURL = copy
                 phase = .saveToFiles(copy.lastPathComponent)
